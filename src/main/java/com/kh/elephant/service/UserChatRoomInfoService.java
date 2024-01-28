@@ -63,7 +63,4 @@ public class UserChatRoomInfoService {
         return dao.joinMessage(id, code);
     }
 
-    public UserChatRoomInfo findByPostSEQAndId(int code, String id) {
-        return dao.findBypostSEQAndId(code, id);
-    }
 }

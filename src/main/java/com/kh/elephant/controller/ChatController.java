@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @RestController
@@ -85,9 +86,8 @@ public class ChatController {
     @GetMapping("/chat/room/message/{id}")
     public ResponseEntity<List<ChatMessage>> messageFindByChatroomSEQ(@PathVariable int id) {
         try {
-            List<ChatMessage> messages = cmService.messageFindByChatroomSEQ(id);
-            messages.sort(Comparator.comparing(ChatMessage::getChatMessageSEQ)); // SEQ 기준으로 정렬
-            return ResponseEntity.status(HttpStatus.OK).body(messages);
+            // SEQ순으로 정렬하여 반환
+            return ResponseEntity.status(HttpStatus.OK).body(cmService.messageFindByChatroomSEQ(id).stream().sorted(Comparator.comparing(ChatMessage::getChatMessageSEQ)).collect(Collectors.toList()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

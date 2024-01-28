@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/qiri/*")
@@ -32,11 +33,10 @@ public class NotificationMessageController {
     @GetMapping("/public/notify/{id}")
     public ResponseEntity<List<NotificationMessage>> findByUserId(@PathVariable String id) {
         try {
-            List<NotificationMessage> notificationMessages = nmService.findByUserId(id);
-
-            // 시간을 기준으로 내림차순 정렬
-            Collections.sort(notificationMessages, Comparator.comparing(NotificationMessage::getSentTime).reversed());
-            return ResponseEntity.status(HttpStatus.OK).body(notificationMessages);
+            // 시간 내림차순으로 정렬 후 반환
+            return ResponseEntity.status(HttpStatus.OK).body(nmService.findByUserId(id).stream()
+                    .sorted(Comparator.comparing(NotificationMessage::getSentTime).reversed())
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -75,7 +75,7 @@ public class NotificationMessageController {
         }
     }
 
-    // 알림 저장, 웹소켓 전송
+    // 공통 메서드 - 알림 저장, 웹소켓 전송
     public void notifyProcessing(UserInfo userInfo, String message, Post post, ChatRoom chatRoom) {
             // 알림 DB저장
             NotificationMessage notificationMessage = NotificationMessage.builder()

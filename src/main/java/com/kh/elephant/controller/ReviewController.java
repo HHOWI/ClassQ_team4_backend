@@ -55,16 +55,8 @@ public class ReviewController {
     @GetMapping("/my_matching/{id}")
     public ResponseEntity<List<MatchingUserInfo>> getMyReview(@PathVariable String id) {
         try {
-            // 내 아이디로 승락되었고 아직 리뷰글을 작성하지 않은 매칭정보 가져오기
-            List<MatchingUserInfo> matchingUserInfoList = muiService.findByUserIdForPostReview(id);
-            log.info("리뷰" + matchingUserInfoList.toString());
-            // 매칭정보중 매칭이 완료처리된 것만 걸러내기
-            List<MatchingUserInfo> filteredList = matchingUserInfoList.stream()
-                    .filter(matchingUserInfo -> "Y".equals(matchingUserInfo.getPost().getMatched()))
-                    .sorted(Comparator.comparingInt(MatchingUserInfo::getMatchingUserInfoSeq))
-                    .collect(Collectors.toList());
-
-            return ResponseEntity.status(HttpStatus.OK).body(filteredList);
+            // 내 아이디로 승락되었고 매칭이 성사되었지만 아직 리뷰글을 작성하지 않은 매칭정보 가져오기
+            return ResponseEntity.status(HttpStatus.OK).body(muiService.findByUserIdForPostReview(id));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

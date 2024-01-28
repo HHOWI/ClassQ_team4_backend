@@ -57,9 +57,7 @@ CREATE TABLE USER_INFO(
     MBTI VARCHAR2(8),       -- MBTI
     BIRTHDAY DATE,       -- 생일
     JOIN_DATE TIMESTAMP DEFAULT SYSDATE NOT NULL,        -- 가입날짜
-    POPULARITY NUMBER DEFAULT 0, -- (좋아요받은 수)
-    RATING NUMBER DEFAULT 0, -- 유저 평점(리뷰에서 받은 평점의 평균 0점 빼고 계산)
-    IS_ADMIN VARCHAR2(1) DEFAULT 'N' NOT NULL CHECK(IS_ADMIN IN ('Y', 'N')),      -- 관리자 권한 유무    
+    POPULARITY NUMBER DEFAULT 0, -- (좋아요받은 수) 
     IS_DELETED VARCHAR2(1) DEFAULT 'N' NOT NULL CHECK(IS_DELETED IN ('Y', 'N'))      -- 탈퇴 유무    
 );
 
