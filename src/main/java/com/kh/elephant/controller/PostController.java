@@ -47,16 +47,16 @@ public class PostController {
     private PlaceTypeService placeTypeService; // 지역 관련 서비스
     @Autowired
     private PlaceTypeService pTypeService;
-
     @Autowired
     private BoardService boardService; // 게시판 관련 서비스
     @Autowired
     private CategoryService categoryService; // 카테고리 관련 서비스
     @Autowired
     private PostAttachmentsService paService; // 첨부 파일 관련 서비스
-
     @Autowired
     private MatchingCategoryInfoService mciService; // 선택한 카테고리를 MatchingCategoryInfo 테이블로 저장시키기 위한 서비스
+    @Autowired
+    private MatchingUserInfoService muiService;
 
     // 검색
     @Autowired
@@ -133,7 +133,18 @@ public class PostController {
                     .userInfo(userInfo)
                     .board(board)
                     .build();
-            return ResponseEntity.ok().body(postService.create(post));
+
+            Post result = postService.create(post);
+
+            // 나의 매칭정보 저장(리뷰작성용)
+            MatchingUserInfo matchingUserInfo = MatchingUserInfo.builder()
+                    .post(result)
+                    .userInfo(userInfo)
+                    .matchingAccept("Y")
+                    .build();
+            muiService.create(matchingUserInfo);
+
+            return ResponseEntity.ok().body(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

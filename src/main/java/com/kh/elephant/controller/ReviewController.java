@@ -45,7 +45,10 @@ public class ReviewController {
     @GetMapping("/review")
     public ResponseEntity<List<Post>> getAllReview() {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(postService.getAllReview());
+            // SEQ순으로 정렬후 반환
+            return ResponseEntity.status(HttpStatus.OK).body(postService.getAllReview().stream()
+                    .sorted(Comparator.comparingInt(Post::getPostSEQ).reversed())
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
