@@ -81,7 +81,6 @@ public class NotificationMessageController {
             NotificationMessage notificationMessage = NotificationMessage.builder()
                     .userInfo(userInfo)
                     .message(message)
-                    .isRead("N")
                     .post(post)
                     .chatRoom(chatRoom)
                     .build();

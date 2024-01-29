@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -37,8 +38,6 @@ public class ChatController {
     @Autowired
     private UserInfoService uiService;
     @Autowired
-    private ChatService chatService;
-    @Autowired
     private PostService postService;
     @Autowired
     private MatchingUserInfoService muiService;
@@ -46,6 +45,8 @@ public class ChatController {
     private NotificationMessageService nmService;
     @Autowired
     private NotificationMessageController notifyController;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
 
 
@@ -95,17 +96,20 @@ public class ChatController {
 
 
     //채팅방 나가기와 채팅방에 아무도 남아있지 않다면 해당 채팅방 관련 데이터 삭제
+    @Transactional
     @PutMapping("/chatroom/leave")
     public ResponseEntity<UserChatRoomInfo> chatRoomLeave(@RequestBody ChatDTO dto) {
         UserInfo userInfo = uiService.show(dto.getId());
         try {
-            // 채팅방 나가기(UPDATE쿼리문)
-            int result = ucriService.chatRoomLeave(userInfo.getUserId(), dto.getChatRoomSEQ());
+            // 채팅방 나가기(UPDATE쿼리문으로 LEAVE 컬럼값 Y로 변경)
+            ucriService.chatRoomLeave(userInfo.getUserId(), dto.getChatRoomSEQ());
             // 해당 채팅방 관련 알림 db 삭제
             nmService.deleteByRoomSEQAndUserId(dto.getChatRoomSEQ(), dto.getId());
-            //채팅방에 아무도 남아있지 않다면 해당 채팅방 관련 데이터 삭제(SELECT쿼리문, DELETE쿼리문)
-            if(result > 0) {
-                chatService.leaveChatRoom(dto.getChatRoomSEQ());
+            //채팅방에 아무도 남아있지 않다면 해당 채팅방 관련 데이터 삭제
+            if(ucriService.leaveChatRoom(dto.getChatRoomSEQ()) == 0) { //
+                cmService.deleteChatMessages(dto.getChatRoomSEQ());
+                ucriService.deleteUserChatRoomInfo(dto.getChatRoomSEQ());
+                crService.deleteChatRoom(dto.getChatRoomSEQ());
             }
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e) {
@@ -186,6 +190,46 @@ public class ChatController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
+
+    // 채팅 전송 및 db저장, 알림 처리
+    @Transactional
+    @MessageMapping("/chat/message")
+    public void message(ChatDTO dto) {
+        // 채팅메세지 웹소켓으로 전송
+        messagingTemplate.convertAndSend("/sub/chat/room/" + dto.getChatRoomSEQ(), dto);
+
+        UserInfo userInfo = uiService.findByNickname(dto.getNickname());
+        ChatRoom chatRoom = crService.show(dto.getChatRoomSEQ());
+        try {
+            ChatMessage chatMessage = ChatMessage.builder()
+                    .userInfo(userInfo)
+                    .chatRoom(chatRoom)
+                    .message(dto.getMessage())
+                    .build();
+            // 채팅메세지 db저장
+            cmService.create(chatMessage);
+        } catch (Exception e) {
+            log.error("메세지 db저장 오류");
+        }
+
+        // 채팅 알림처리
+        List<UserChatRoomInfo> userChatRoomInfoList = ucriService.findByUserChatRoomSEQ(dto.getChatRoomSEQ());
+        for(UserChatRoomInfo user : userChatRoomInfoList) {
+            try {
+                // 발송자는 해당 채팅에 대한 알림 제외 처리
+                if(!user.getUserInfo().getUserId().equals(userInfo.getUserId())) {
+                    // 한 채팅방에 대한 알림은 확인전까지 한번만
+                    if (nmService.checkDuplicateNotify(user.getUserInfo().getUserId(), user.getChatRoom().getChatRoomSEQ()) == 0) {
+                        // 채팅알림처리
+                        notifyController.notifyProcessing(user.getUserInfo(), user.getChatRoom().getPost().getPostTitle() + "의 채팅방에서 새 메세지가 도착했습니다.", user.getChatRoom().getPost(), user.getChatRoom());
+                    }
+                }
+            } catch (Exception e) {
+                log.error("채팅메시지알림 db저장 오류");
+            }
+        }
+    }
+
 
     // 공통 메서드 - 채팅방 접속
     private UserChatRoomInfo JoinChatRoom(int chatRoomSEQ, String userId) {
