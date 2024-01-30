@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -245,11 +246,9 @@ public class PostController {
     @GetMapping("/post_not_matched/{userId}")
     public ResponseEntity<List<Post>> findNotMatchedPostByUserId(@PathVariable String userId) {
         try {
-            List<Post> postList = postService.findNotMatchedPostByUserId(userId);
-            // 최신순 정렬
-            postList.sort(Comparator.comparingInt(Post::getPostSEQ).reversed());
+            // seq 숫자가 높은순으로 정렬해서 반환
+            return ResponseEntity.status(HttpStatus.OK).body(postService.findNotMatchedPostByUserId(userId).stream().sorted(Comparator.comparingInt(Post::getPostSEQ).reversed()).collect(Collectors.toList()));
 
-            return ResponseEntity.status(HttpStatus.OK).body(postList);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
