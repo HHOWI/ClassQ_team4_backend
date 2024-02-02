@@ -18,7 +18,6 @@ public interface SearchDAO extends JpaRepository<Post, Integer> {
             "    po.PLACE_SEQ AS PLACE_SEQ, " +
             "    po.BOARD_SEQ AS BOARD_SEQ, " +
             "    po.MATCHED AS MATCHED, " +
-            "    po.POST_TITLE_DROPBOX AS POST_TITLE_DROPBOX, " +
             "    po.POST_DELETE AS POST_DELETE, " +
             "    pl.PLACE_NAME AS PLACE_NAME, " +
             "    pt.PLACE_TYPE_NAME AS PLACE_TYPE_NAME, " +
