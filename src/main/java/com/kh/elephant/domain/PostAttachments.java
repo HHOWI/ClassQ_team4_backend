@@ -19,9 +19,8 @@ public class PostAttachments {
     @SequenceGenerator(name="postAttachmentSequence", sequenceName = "SEQ_POST_ATTACHMENT",allocationSize = 1)
     private int postAttachmentSEQ;
 
-    @ManyToOne
-    @JoinColumn(name = "post_seq")
-    private Post post;
+    @Column(name = "post_seq")
+    private int postCode;
 
     @Column(name = "attachment_url")
     private String attachmentURL;

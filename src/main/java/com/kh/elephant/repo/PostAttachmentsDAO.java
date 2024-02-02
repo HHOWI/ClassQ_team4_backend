@@ -15,5 +15,5 @@ public interface PostAttachmentsDAO extends JpaRepository<PostAttachments, Integ
     List<PostAttachments> findByPostSeq(@Param("id") int id);
 
     @Query(value = "DELETE FROM post_attachments  WHERE post_seq = :id",nativeQuery = true)
-    int deleteByPostSeq(@Param("id") int id);
+    void deleteByPostSeq(int id);
 }

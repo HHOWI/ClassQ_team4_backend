@@ -128,7 +128,7 @@ public class MatchingCategoryInfoController {
                 return ResponseEntity.status(HttpStatus.OK).body(null);
             } else {
                 log.info("매칭 카테고리 정보가 없습니다.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                return ResponseEntity.status(HttpStatus.OK).body(null);
             }
         } catch (Exception e) {
             log.error("매칭 카테고리 정보 삭제 중 오류 발생", e);
