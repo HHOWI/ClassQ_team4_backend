@@ -15,7 +15,10 @@ public class PostAttachmentsService {
 
     @Autowired
     private PostAttachmentsDAO dao;
-
+    public List<PostAttachments> findByPostSEQ(int id) {return dao.findByPostSeq(id);}
+    public void deleteByPostSeq (int id){
+        dao.deleteByPostSeq(id);;
+    }
     public List<PostAttachments> showAll() { return dao.findAll(); }
 
     public PostAttachments show(int code) { return dao.findById(code).orElse(null); }
@@ -24,7 +27,6 @@ public class PostAttachmentsService {
         return dao.save(postAttachments);
     }
 
-    public List<PostAttachments> findByPostSEQ(int id) {return dao.findByPostSeq(id);}
 
     public PostAttachments update(PostAttachments postAttachments) { return dao.save(postAttachments); }
 
@@ -34,7 +36,5 @@ public class PostAttachmentsService {
         dao.delete(data);
         return data;
     }
-    public void deleteByPostSeq (int id){
-        dao.deleteByPostSeq(id);;
-    }
+
 }

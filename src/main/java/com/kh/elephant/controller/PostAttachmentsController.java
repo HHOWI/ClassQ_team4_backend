@@ -62,27 +62,23 @@ public class PostAttachmentsController {
 
     // 게시글 첨부 파일  추가 http://localhost:8080/qiri/post
     @PostMapping("/postAttachments")
-    public ResponseEntity<List<String>> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
+    public ResponseEntity<Boolean> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
         try{
             List<String> ImageList = new ArrayList<>();
-
-            log.info("일단 첨부파일 등록 확인");
-            log.info(files.toString());
-            log.info("postID : " + postId);
-
+//            log.info("일단 첨부파일 등록 확인");
+//            log.info(files.toString());
+//            log.info("postID : " + postId);
             List<PostAttachments> deleteList = service.findByPostSEQ(postId);
-            log.info(deleteList.toString());
-
+//            log.info(deleteList.toString());
             if(!deleteList.isEmpty())
             {
                 for (PostAttachments postAttachments : deleteList) {
                     service.delete(postAttachments.getPostAttachmentSEQ());
                 }
             }
-
             if (files.isEmpty()) {
                 //  클라이언트가 사진을 첨부하지 않았다면 아무 동작을 하지 않음
-                return ResponseEntity.status(HttpStatus.OK).body(ImageList);
+                return ResponseEntity.status(HttpStatus.OK).body(false);
             }
             for (MultipartFile file : files) { // 첨부파일이 여러개 일수 있으니 for문 사용
                 String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename(); // 파일 랜덤 이름 부여랑 원래 이름
@@ -102,7 +98,7 @@ public class PostAttachmentsController {
                         .build();
                 service.create(postAttachments);
             }
-            return ResponseEntity.status(HttpStatus.OK).body(null);
+            return ResponseEntity.status(HttpStatus.OK).body(true);
         }catch (Exception e){
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -116,29 +112,66 @@ public class PostAttachmentsController {
     }
     // 게시글 삭제 http://localhost:8080/qiri/post/1 <--id
 
-    @DeleteMapping("/postAttachments/deleteAll/{id}")
-    public ResponseEntity<PostAttachments> deleteFiles(@PathVariable int id) {
-        try {
-            log.info("id 확인" + id);
-            
-            List<PostAttachments> list = service.findByPostSEQ(id);
-            log.info(list.toString());
+//    @DeleteMapping("/postAttachments/deleteAll/{id}")
+//    public ResponseEntity<PostAttachments> deleteFiles(@PathVariable int id) {
+//        try {
+//            log.info("id 확인" + id);
+//
+//            List<PostAttachments> list = service.findByPostSEQ(id);
+//            log.info(list.toString());
+//
+//            log.info("리스트 비어 있는지 체크 " + list.isEmpty());
+//
+//            if(!list.isEmpty())
+//            {
+//                log.info("비 어있지 않음");
+//                service.deleteByPostSeq(id);
+//                log.info("삭제 성공!");
+//            }
+//            else {
+//                log.info("첨부 파일이 없음.");
+//            }
+//            return ResponseEntity.status(HttpStatus.OK).body(null);
+//        } catch (Exception e) {
+//            log.error("첨부 파일 정보 삭제 중 오류 발생", e);
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+//        }
+//    }
 
-            log.info("리스트 비어 있는지 체크 " + list.isEmpty());
+    @PostMapping("/deleteFiles")
+    public ResponseEntity<Boolean> deleteFiles(@RequestParam List<String> files)
+    {
+        try{
+            String path = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
+            log.info("폴더에 존재 하는 기존 파일 삭제 로직 들어오는지 체킹.");
+            log.info(files.toString());
 
-            if(!list.isEmpty())
+            for(int i = 0 ; i < files.size(); i++)
             {
-                log.info("비 어있지 않음");
-                service.deleteByPostSeq(id);
-                log.info("삭제 성공!");
+                File file = new File(path + "\\" + files.get(i));
+                if(file.exists())
+                {
+                    if(file.delete())
+                    {
+                        log.info(i + "번째파일삭제");
+                    }
+                    else {
+                        log.info(i + "번째파일삭제 실패요...@@@@@@@@@@@@@@@@@@@@@@@");
+                    }
+                }
+                else {
+
+                }
             }
-            else {
-                log.info("첨부 파일이 없음.");
-            }
-            return ResponseEntity.status(HttpStatus.OK).body(null);
-        } catch (Exception e) {
-            log.error("첨부 파일 정보 삭제 중 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
+        catch(Exception e){
+            e.printStackTrace();
+        }
+
+        return null;
     }
+
+
+
+
 }
