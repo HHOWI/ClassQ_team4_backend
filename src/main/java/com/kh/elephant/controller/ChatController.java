@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -54,10 +55,11 @@ public class ChatController {
     @GetMapping("/public/chatRooms/{id}")
     public ResponseEntity<List<UserChatRoomInfo>> findByUserId(@PathVariable String id) {
         try {
-            List<UserChatRoomInfo> list = ucriService.findByUserId(id);
-            // joinDate를 기준으로 정렬
-            Collections.sort(list, Comparator.comparing(UserChatRoomInfo::getJoinDate).reversed());
-            return ResponseEntity.status(HttpStatus.OK).body(list);
+            // joinDate를 기준으로 정렬하여 반환
+            return ResponseEntity.status(HttpStatus.OK).body(ucriService.findByUserId(id)
+                    .stream()
+                    .sorted(Comparator.comparing(UserChatRoomInfo::getJoinDate).reversed())
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             return null;
         }
@@ -99,12 +101,23 @@ public class ChatController {
     @Transactional
     @PutMapping("/chatroom/leave")
     public ResponseEntity<UserChatRoomInfo> chatRoomLeave(@RequestBody ChatDTO dto) {
-        UserInfo userInfo = uiService.show(dto.getId());
         try {
+            UserInfo userInfo = uiService.show(dto.getId());
+
+            // 퇴장 메세지 발송, DB저장
+            dto.setNickname(userInfo.getUserNickname());
+            dto.setMessage(userInfo.getUserNickname() + "님이 채팅방에서 퇴장하였습니다.");
+            dto.setLeave("Y");
+            dto.setSendTime(new Date());
+            dto.setProfileImg(userInfo.getProfileImg());
+            createChatMessage(dto);
+
             // 채팅방 나가기(UPDATE쿼리문으로 LEAVE 컬럼값 Y로 변경)
             ucriService.chatRoomLeave(userInfo.getUserId(), dto.getChatRoomSEQ());
+
             // 해당 채팅방 관련 알림 db 삭제
             nmService.deleteByRoomSEQAndUserId(dto.getChatRoomSEQ(), dto.getId());
+
             //채팅방에 아무도 남아있지 않다면 해당 채팅방 관련 데이터 삭제
             if(ucriService.leaveChatRoom(dto.getChatRoomSEQ()) == 0) { //
                 cmService.deleteChatMessages(dto.getChatRoomSEQ());
@@ -113,7 +126,6 @@ public class ChatController {
             }
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e) {
-            log.info("delete error");
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -122,12 +134,10 @@ public class ChatController {
     @GetMapping("/chatroom/userlist/{code}")
     public ResponseEntity<List<UserChatRoomInfo>> findByChatRoomSEQ(@PathVariable int code) {
         try {
-            List<UserChatRoomInfo> userChatRoomInfos = ucriService.findByUserChatRoomSEQ(code);
-            // 가나다순으로 정렬
-            Collections.sort(userChatRoomInfos, Comparator.comparing(
-                    ucri -> ucri.getUserInfo().getUserNickname()
-            ));
-            return ResponseEntity.status(HttpStatus.OK).body(userChatRoomInfos);
+            // 가나다 순으로 정렬
+            return ResponseEntity.status(HttpStatus.OK).body(ucriService.findByUserChatRoomSEQ(code).stream()
+                    .sorted(Comparator.comparing(ucri -> ucri.getUserInfo().getUserNickname()))
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -137,7 +147,16 @@ public class ChatController {
     @PutMapping("/chatroom/user/join")
     public ResponseEntity<UserChatRoomInfo> joinMessage(@RequestBody ChatDTO dto) {
         try {
-            int result = ucriService.joinMessage(dto.getId(), dto.getChatRoomSEQ());
+            UserInfo userInfo = uiService.show(dto.getId());
+            // 최조로 채팅방을 열었다면
+            if(ucriService.joinMessage(dto.getId(), dto.getChatRoomSEQ()) != 0) {
+                // 입장 메세지 발송, DB저장
+                dto.setNickname(userInfo.getUserNickname());
+                dto.setMessage(userInfo.getUserNickname() + "님이 채팅에 참여하였습니다.");
+                dto.setSendTime(new Date());
+                dto.setProfileImg(userInfo.getProfileImg());
+                createChatMessage(dto);
+            }
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -195,24 +214,11 @@ public class ChatController {
     @Transactional
     @MessageMapping("/chat/message")
     public void message(ChatDTO dto) {
-        // 채팅메세지 웹소켓으로 전송
-        messagingTemplate.convertAndSend("/sub/chat/room/" + dto.getChatRoomSEQ(), dto);
-
-        UserInfo userInfo = uiService.findByNickname(dto.getNickname());
-        ChatRoom chatRoom = crService.show(dto.getChatRoomSEQ());
-        try {
-            ChatMessage chatMessage = ChatMessage.builder()
-                    .userInfo(userInfo)
-                    .chatRoom(chatRoom)
-                    .message(dto.getMessage())
-                    .build();
-            // 채팅메세지 db저장
-            cmService.create(chatMessage);
-        } catch (Exception e) {
-            log.error("메세지 db저장 오류");
-        }
+        // 채팅 메세지 웹소켓 전송 & DB저장
+        createChatMessage(dto);
 
         // 채팅 알림처리
+        UserInfo userInfo = uiService.findByNickname(dto.getNickname());
         List<UserChatRoomInfo> userChatRoomInfoList = ucriService.findByUserChatRoomSEQ(dto.getChatRoomSEQ());
         for(UserChatRoomInfo user : userChatRoomInfoList) {
             try {
@@ -249,6 +255,30 @@ public class ChatController {
         ChatRoom result = crService.create(chatRoom);
         return result;
     }
+
+    // 공통 메서드 - 채팅 저장 & 발송
+    private ChatMessage createChatMessage(ChatDTO dto) {
+        // 채팅 DB저장
+        UserInfo userInfo = null;
+        if (dto.getId() != null) {
+            userInfo = uiService.show(dto.getId());
+        } else if (dto.getNickname() != null) {
+            userInfo = uiService.findByNickname(dto.getNickname());
+        }
+            ChatMessage chatMessage = ChatMessage.builder()
+                .userInfo(userInfo)
+                .chatRoom(crService.show(dto.getChatRoomSEQ()))
+                .message(dto.getMessage())
+                .build();
+
+            ChatMessage result = cmService.create(chatMessage);
+
+            // 채팅 웹소켓 전송
+        messagingTemplate.convertAndSend("/sub/chat/room/" + dto.getChatRoomSEQ(), dto);
+
+            return result;
+    }
+
 
 
 }
