@@ -27,7 +27,6 @@ public class MatchingCategoryInfoService {
 
     public MatchingCategoryInfo show(int code) { return dao.findById(code).orElse(null); }
 
-//    @Transactional
     public MatchingCategoryInfo create(MatchingCategoryInfo matchingCategoryInfo) {
 
         return dao.save(matchingCategoryInfo); }
@@ -35,6 +34,12 @@ public class MatchingCategoryInfoService {
     public List<MatchingCategoryInfo> createAll(List<MatchingCategoryInfo> matchingCategoryInfoList){
         return dao.saveAll(matchingCategoryInfoList);
     }
+
+    public List<MatchingCategoryInfo> findByPostSEQ(int id){ return dao.findByPostSeq(id);}
+    // post_seq를 MatchingCategoryInfo 테이블에서 검색하는 DAO를 사용해 Post_SEQ를 찾는 서비스
+
+    public int deleteByPostSeq(int id){return  dao.deleteByPostSeq(id);}
+
 
     public MatchingCategoryInfo update(MatchingCategoryInfo matchingCategoryInfo) { return dao.save(matchingCategoryInfo); }
 
@@ -50,9 +55,6 @@ public class MatchingCategoryInfoService {
     public List<MatchingCategoryInfo> findByCTSEQ(int code) {
         return dao.findByCTSEQ(code);
     }
-    public List<MatchingCategoryInfo> findByPostSEQ(int id){ return dao.findByPostSeq(id);}
-    // post_seq를 MatchingCategoryInfo 테이블에서 검색하는 DAO를 사용해 Post_SEQ를 찾는 서비스
 
-//    @Transactional
-    public int deleteByPostSeq(int id){return  dao.deleteByPostSeq(id);}
+
 }

@@ -112,6 +112,7 @@ public class PostController {
     @PostMapping("/post") //PostMapping을 위한 메소드 경로 설정
     public ResponseEntity<Post> createPost(@RequestBody PostDTO dto) {
         // dto를 이용한 post 방식이기 때문에 post에 데이터를 넣어주고 db에 저장을 해야함
+
         try {
             // 게시글 작성에 필요한 Service들
             Place place = plService.show(dto.getPlaceSEQ());
@@ -148,6 +149,7 @@ public class PostController {
 
             return ResponseEntity.ok().body(result);
         } catch (Exception e) {
+            log.info("" + e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -38,7 +39,10 @@ public class PostAttachmentsController {
     @GetMapping("/postAttachments")
     public ResponseEntity<List<PostAttachments>> showAll() {
         try{
-            return ResponseEntity.status(HttpStatus.OK).body(service.showAll());
+
+            List<PostAttachments> list = service.showAll();
+            log.info(list.toString());
+            return ResponseEntity.status(HttpStatus.OK).body(list);
 
         }catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -58,12 +62,21 @@ public class PostAttachmentsController {
 
     // 게시글 첨부 파일  추가 http://localhost:8080/qiri/post
     @PostMapping("/postAttachments")
-    public ResponseEntity<List<String>> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
+    public ResponseEntity<Boolean> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
         try{
             List<String> ImageList = new ArrayList<>();
+
+            List<PostAttachments> deleteList = service.findByPostSEQ(postId);
+
+            if(!deleteList.isEmpty())
+            {
+                for (PostAttachments postAttachments : deleteList) {
+                    service.delete(postAttachments.getPostAttachmentSEQ());
+                }
+            }
             if (files.isEmpty()) {
                 //  클라이언트가 사진을 첨부하지 않았다면 아무 동작을 하지 않음
-                return ResponseEntity.status(HttpStatus.OK).body(ImageList);
+                return ResponseEntity.status(HttpStatus.OK).body(false);
             }
             for (MultipartFile file : files) { // 첨부파일이 여러개 일수 있으니 for문 사용
                 String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename(); // 파일 랜덤 이름 부여랑 원래 이름
@@ -78,12 +91,12 @@ public class PostAttachmentsController {
                 ImageList.add(imageUrl); // list에 추가
 
                 PostAttachments postAttachments = PostAttachments.builder()
-                        .post(postService.show(postId))
+                        .postCode(postId)
                         .attachmentURL(imageUrl)
                         .build();
                 service.create(postAttachments);
             }
-            return ResponseEntity.status(HttpStatus.OK).body(null);
+            return ResponseEntity.status(HttpStatus.OK).body(true);
         }catch (Exception e){
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -93,84 +106,40 @@ public class PostAttachmentsController {
     // 게시글 수정 http://localhost:8080/qiri/post
     @PutMapping("/postAttachments")
     public ResponseEntity<List<String>> updateFiles(@RequestParam(required = false) List<MultipartFile> files, @RequestParam int postId) throws IOException {
-        try {
-            List<String> updatedImageList = new ArrayList<>();
+        return ResponseEntity.ok().build();
+    }
 
-            log.info("files : " + files); // 디버깅을 위해 파일 로그
+    @PostMapping("/deleteFiles")
+    public ResponseEntity<Boolean> deleteFiles(@RequestParam List<String> files)
+    {
+        try{
+            String path = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
+            log.info("폴더에 존재 하는 기존 파일 삭제 로직 들어오는지 체킹.");
+            log.info(files.toString());
 
-            // 파일이 제공되었는지 확인
-            if (files == null || files.isEmpty()) {
-                // 업데이트할 파일이 없음
-                return ResponseEntity.status(HttpStatus.OK).body(updatedImageList);
+            for(int i = 0 ; i < files.size(); i++)
+            {File file = new File(path + "\\" + files.get(i));
+                if(file.exists())
+                {
+                    if(file.delete())
+                    {
+                        log.info(i + "번째파일삭제");
+                    }
+                    else {
+                        log.info(i + "번째파일삭제 실패요...@@@@@@@@@@@@@@@@@@@@@@@");
+                    }
+                }else {
+
+                }
             }
-
-            // 첨부 파일 재생성 전 기존 첨부파일 삭제
-            service.deleteByPostSeq(postId);
-            
-            // 새 파일을 반복하고 첨부 파일 업데이트 또는 추가
-            for (MultipartFile file : files) {
-                String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
-                String uploadPath = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload";
-
-                InputStream inputStream = file.getInputStream();
-                Path filePath = Paths.get(uploadPath, fileName);
-                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING);
-
-                String imageUrl = fileName;
-
-                updatedImageList.add(imageUrl);
-
-                PostAttachments postAttachments = PostAttachments.builder()
-                        .post(postService.show(postId))
-                        .attachmentURL(imageUrl)
-                        .build();
-                log.info("첨부 파일 정보" + postAttachments);
-
-                service.create(postAttachments);
-            }
-
-            return ResponseEntity.status(HttpStatus.OK).body(updatedImageList);
-
-        } catch (Exception e) {
+        }
+        catch(Exception e){
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
+        return null;
     }
-    // 게시글 삭제 http://localhost:8080/qiri/post/1 <--id
 
-//    @DeleteMapping("/postAttachments/{id}")
-//    public ResponseEntity<PostAttachments> deleteFiles(@PathVariable int id){
-//        try{
-//            int delete = service.deleteByPostSeq(id);
-//            if(delete>0){
-//                log.info("첨부 파일 삭제 성공 - 삭제된 수: ",delete);
-//                return ResponseEntity.status(HttpStatus.OK).body(null);
-//            }else {
-//                log.info("첨부 파일 정보가 없습니다.");
-//                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-//            }
-//        }catch (Exception e){
-//            log.error("첨부 파일 정보 삭제 중 오류 발생",e);
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-//        }
-//    }
-//}
-@DeleteMapping("/postAttachments/deleteAll/{id}")
-public ResponseEntity<PostAttachments> deleteFiles(@PathVariable int id) {
-    try {
-        int deleteCount = service.deleteByPostSeq(id);
 
-        if (deleteCount > 0) {
-            log.info("첨부 파일 삭제 성공 - 삭제된 수: {} ", deleteCount);
-            return ResponseEntity.status(HttpStatus.OK).body(null);
-        } else {
-            log.info("첨부 파일 정보가 없습니다.");
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-        }
-    } catch (Exception e) {
-        log.error("첨부 파일 정보 삭제 중 오류 발생", e);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-    }
-}
+
 
 }

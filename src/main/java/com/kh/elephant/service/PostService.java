@@ -64,6 +64,15 @@ public class PostService {
         return post;
     }
 
+    public List<MatchingCategoryInfo> getMci(int id){
+        // MatchingCategoryInfo Service에 있는 게시물의 카테고리 정보 조회를 하는 findByPostSEQ 메소드를 호출함
+        return mciService.findByPostSEQ(id);
+    }
+
+    public List<PostAttachments>getAttach(int id){
+    // PostAttachments Service에 있는 게시물의 카테고리 정보 조회를 하는 findByPostSeq 메소드를 호출함
+        return attachmentsService.findByPostSEQ(id);
+    }
 
     public Post create(Post post){
        // save 메소드를 사용하여 게시글 저장
@@ -97,15 +106,7 @@ public class PostService {
     }
 
 
-    public List<MatchingCategoryInfo> getMci(int id){
-    // MatchingCategoryInfo Service에 있는 게시물의 카테고리 정보 조회를 하는 findByPostSEQ 메소드를 호출함
-        return mciService.findByPostSEQ(id);
-    }
 
-    public List<PostAttachments>getAttach(int id){
-// PostAttachments Service에 있는 게시물의 카테고리 정보 조회를 하는 findByPostSeq 메소드를 호출함
-        return attachmentsService.findByPostSEQ(id);
-    }
 
     public List<Post> findPostByUserId(String userId) { return dao.findPostByUserId(userId); }
 

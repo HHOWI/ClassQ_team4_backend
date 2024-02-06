@@ -19,13 +19,11 @@ public interface MatchingCategoryInfoDAO extends JpaRepository<MatchingCategoryI
     @Query(value = "SELECT * FROM matching_category_info WHERE post_seq = :id",nativeQuery = true)
     List<MatchingCategoryInfo> findByPostSeq(@Param("id") int id);
 
-    @Query(value = "UPDATE matching_category_info WHERE post_seq = :id", nativeQuery = true)
-    int updateByPostSeq(@Param("id")int id);
-
     @Transactional
     @Modifying
     @Query(value = "DELETE FROM matching_category_info WHERE post_seq = :id",nativeQuery = true)
     int deleteByPostSeq(@Param("id") int id);
 
-
+    @Query(value = "UPDATE matching_category_info WHERE post_seq = :id", nativeQuery = true)
+    int updateByPostSeq(@Param("id")int id);
 }
