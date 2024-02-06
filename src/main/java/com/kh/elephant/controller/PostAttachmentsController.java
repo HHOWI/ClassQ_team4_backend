@@ -65,11 +65,9 @@ public class PostAttachmentsController {
     public ResponseEntity<Boolean> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
         try{
             List<String> ImageList = new ArrayList<>();
-//            log.info("일단 첨부파일 등록 확인");
-//            log.info(files.toString());
-//            log.info("postID : " + postId);
+
             List<PostAttachments> deleteList = service.findByPostSEQ(postId);
-//            log.info(deleteList.toString());
+
             if(!deleteList.isEmpty())
             {
                 for (PostAttachments postAttachments : deleteList) {
@@ -110,33 +108,6 @@ public class PostAttachmentsController {
     public ResponseEntity<List<String>> updateFiles(@RequestParam(required = false) List<MultipartFile> files, @RequestParam int postId) throws IOException {
         return ResponseEntity.ok().build();
     }
-    // 게시글 삭제 http://localhost:8080/qiri/post/1 <--id
-
-//    @DeleteMapping("/postAttachments/deleteAll/{id}")
-//    public ResponseEntity<PostAttachments> deleteFiles(@PathVariable int id) {
-//        try {
-//            log.info("id 확인" + id);
-//
-//            List<PostAttachments> list = service.findByPostSEQ(id);
-//            log.info(list.toString());
-//
-//            log.info("리스트 비어 있는지 체크 " + list.isEmpty());
-//
-//            if(!list.isEmpty())
-//            {
-//                log.info("비 어있지 않음");
-//                service.deleteByPostSeq(id);
-//                log.info("삭제 성공!");
-//            }
-//            else {
-//                log.info("첨부 파일이 없음.");
-//            }
-//            return ResponseEntity.status(HttpStatus.OK).body(null);
-//        } catch (Exception e) {
-//            log.error("첨부 파일 정보 삭제 중 오류 발생", e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-//        }
-//    }
 
     @PostMapping("/deleteFiles")
     public ResponseEntity<Boolean> deleteFiles(@RequestParam List<String> files)
@@ -147,8 +118,7 @@ public class PostAttachmentsController {
             log.info(files.toString());
 
             for(int i = 0 ; i < files.size(); i++)
-            {
-                File file = new File(path + "\\" + files.get(i));
+            {File file = new File(path + "\\" + files.get(i));
                 if(file.exists())
                 {
                     if(file.delete())
@@ -158,8 +128,7 @@ public class PostAttachmentsController {
                     else {
                         log.info(i + "번째파일삭제 실패요...@@@@@@@@@@@@@@@@@@@@@@@");
                     }
-                }
-                else {
+                }else {
 
                 }
             }
@@ -167,7 +136,6 @@ public class PostAttachmentsController {
         catch(Exception e){
             e.printStackTrace();
         }
-
         return null;
     }
 
