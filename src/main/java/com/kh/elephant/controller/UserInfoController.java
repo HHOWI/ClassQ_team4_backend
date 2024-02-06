@@ -128,7 +128,6 @@ public class UserInfoController {
                 .birthday(dto.getUserInfoDTO().getBirthday())
                 .placeType(dto.getUserInfoDTO().getPlaceType())
                 .profileImg(url)
-                .isAdmin("N")
                 .isDeleted("N")
                 .joinDate(new Date())
                 .build();

@@ -63,7 +63,10 @@ public class UserChatRoomInfoService {
         return dao.joinMessage(id, code);
     }
 
-    public UserChatRoomInfo findByPostSEQAndId(int code, String id) {
-        return dao.findBypostSEQAndId(code, id);
+    public void deleteUserChatRoomInfo(int chatroomSeq) {
+        dao.deleteByChatroomSeq(chatroomSeq);
     }
+
+    public int leaveChatRoom(int chatroomSeq) throws Exception { return dao.allUsersLeft(chatroomSeq); }
+
 }

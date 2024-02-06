@@ -32,9 +32,6 @@ public class MatchingUserInfo {
     @JoinColumn(name="user_id")
     private UserInfo userInfo;
 
-    @Column(name = "SCORE")
-    private int score;
-
     @Column(name = "MATCHING_ACCEPT")
     private String matchingAccept;
 
