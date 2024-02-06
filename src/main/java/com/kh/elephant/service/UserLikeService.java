@@ -36,4 +36,12 @@ public class UserLikeService {
         userLikeDAO.delete(target);
         return target;
     }
+
+    public UserLike duplicateCheck(String likeUpUser, String likeUpTarget) {
+        return userLikeDAO.duplicateCheck(likeUpUser, likeUpTarget);
+    }
+
+    public int findByTarget(String likeUpTarget) {
+        return userLikeDAO.findByTarget(likeUpTarget);
+    }
 }

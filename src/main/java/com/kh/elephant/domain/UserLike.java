@@ -2,6 +2,7 @@ package com.kh.elephant.domain;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
@@ -9,10 +10,12 @@ import org.hibernate.annotations.DynamicInsert;
 import java.util.Date;
 
 @Data
+@Builder
 @Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @DynamicInsert
+@Table(name = "user_like")
 public class UserLike {
 
     @Id
