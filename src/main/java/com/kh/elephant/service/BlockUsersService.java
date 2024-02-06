@@ -38,6 +38,9 @@ public class BlockUsersService {
 
 
     public BlockUsers create(String id, String blockId) {
+        if (id.equals(blockId)) {
+            throw new IllegalArgumentException("자신을 차단할 수 없습니다.");
+        }
         BlockUsers blockUsers = new BlockUsers();
 
         // UserInfo 및 BlockInfo 초기화

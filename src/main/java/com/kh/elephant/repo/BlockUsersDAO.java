@@ -13,11 +13,11 @@ public interface BlockUsersDAO extends JpaRepository<BlockUsers, Integer> {
     List<BlockUsers> findByUserId(String id);
 
     @Modifying
-    @Query(value = "UPDATE BLOCK_USERS SET UNBLOCK = 'Y' WHERE BLOCK_ID = :id", nativeQuery = true)
+    @Query(value = "UPDATE BLOCK_USERS SET UNBLOCK = 'Y', BLOCK_DATE = default WHERE BLOCK_ID = :id", nativeQuery = true)
     void updateByUnblock(@Param("id") String id);
 
     @Modifying
-    @Query(value = "UPDATE BLOCK_USERS SET UNBLOCK = 'N' WHERE BLOCK_ID = :id", nativeQuery = true)
+    @Query(value = "UPDATE BLOCK_USERS SET UNBLOCK = 'N', BLOCK_DATE = default WHERE BLOCK_ID = :id", nativeQuery = true)
     void deleteByUnblock(@Param("id") String id);
 
 }

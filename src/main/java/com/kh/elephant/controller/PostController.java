@@ -89,6 +89,7 @@ public class PostController {
             result = postService.showAll(pageable, builder);
         } else {
             List<Post> searchResults = searchService.searchByKeyword(keyword);
+            Collections.sort(searchResults, Comparator.comparing(Post::getPostSEQ).reversed());
             return ResponseEntity.status(HttpStatus.OK).body(searchResults);
         }
         // Page 객체에서 목록을 추출하여 반환
@@ -226,6 +227,8 @@ public class PostController {
             }
             // Set을 다시 List로 변환
             List<Post> postList = new ArrayList<>(uniquePosts);
+            // 최신순 정렬
+            postList.sort(Comparator.comparingInt(Post::getPostSEQ).reversed());
             return ResponseEntity.status(HttpStatus.OK).body(postList);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
