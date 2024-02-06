@@ -8,7 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/qiri/*")
@@ -21,7 +23,16 @@ public class PlaceTypeController {
     @GetMapping("/public/placeType")
     public ResponseEntity<List<PlaceType>> showAll() {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(service.showAll());
+            // 가나다 순으로 정렬하여 반환
+            List<PlaceType> placeTypes = service.showAll().stream()
+                    .filter(pt -> !pt.getPlaceTypeName().equals("없음"))
+                    .sorted((pt1, pt2) -> {
+                        if (pt1.getPlaceTypeName().equals("기타")) return 1;
+                        if (pt2.getPlaceTypeName().equals("기타")) return -1;
+                        return pt1.getPlaceTypeName().compareTo(pt2.getPlaceTypeName());
+                    })
+                    .collect(Collectors.toList());
+            return ResponseEntity.status(HttpStatus.OK).body(placeTypes);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

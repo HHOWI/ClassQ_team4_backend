@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/qiri/*")
@@ -25,7 +27,10 @@ public class PlaceController {
     public ResponseEntity<List<Place>> showAll() {
 
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(service.showAll());
+            // 가나다 순으로 정렬
+            return ResponseEntity.status(HttpStatus.OK).body(service.showAll().stream()
+                    .sorted(Comparator.comparing(Place::getPlaceName))
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
 
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
