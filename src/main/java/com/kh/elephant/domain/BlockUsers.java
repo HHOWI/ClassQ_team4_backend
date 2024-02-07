@@ -2,6 +2,7 @@ package com.kh.elephant.domain;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
@@ -13,6 +14,7 @@ import java.util.Date;
 @NoArgsConstructor
 @Entity
 @DynamicInsert
+@Builder
 public class BlockUsers {
 
     @Id
@@ -26,7 +28,7 @@ public class BlockUsers {
     private UserInfo userInfo;
 
     @ManyToOne
-    @JoinColumn(name = "block_id", referencedColumnName = "user_id")
+    @JoinColumn(name = "block_id")
     private UserInfo blockInfo;
 
     @Column(name = "block_date")

@@ -1,14 +1,19 @@
 package com.kh.elephant.controller;
 
+import com.kh.elephant.domain.BlockUserDTO;
 import com.kh.elephant.domain.BlockUsers;
 import com.kh.elephant.service.BlockUsersService;
+import com.kh.elephant.service.UserInfoService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/qiri/*")
 @CrossOrigin(origins = {"*"}, maxAge = 6000)
@@ -16,6 +21,8 @@ public class BlockUsersController {
 
     @Autowired
     private BlockUsersService service;
+    @Autowired
+    private UserInfoService userInfoService;
 
     // 유저간 밴 전체 보기
     @GetMapping("/blockUsers")
@@ -35,27 +42,30 @@ public class BlockUsersController {
 
     // 유저 차단하기
     @PostMapping("/blockUsers")
-    public ResponseEntity<BlockUsers> create(@RequestBody BlockUsers blockUsers) {
+    public ResponseEntity<BlockUsers> create(@RequestBody BlockUserDTO dto) {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(service.create(blockUsers.getUserInfo().getUserId(), blockUsers.getBlockInfo().getUserId()));
+
+            BlockUsers blockUsers = BlockUsers.builder()
+                    .userInfo(userInfoService.show(dto.getUserId()))
+                    .blockInfo(userInfoService.show(dto.getBlockId()))
+                    .blockReason(dto.getBlockReason())
+                    .build();
+            return ResponseEntity.status(HttpStatus.OK).body(service.create(blockUsers));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
 
-    // 다시 차단 (unblock "Y"으로 변경)
-    @PutMapping("/blockUsers/update/{id}")
-    public ResponseEntity<Void> updateBlockUser(@PathVariable String id) {
-        service.updateBlockUser(id);
-        return ResponseEntity.status(HttpStatus.OK).build();
-    }
-
-
-    // 차단 해제 (unblock "N"으로 변경)
-    @PutMapping("/blockUsers/delete/{id}")
-    public ResponseEntity<Void> deleteBlockUser(@PathVariable String id) {
-        service.deleteBlockUser(id);
-        return ResponseEntity.status(HttpStatus.OK).build();
+    // 차단 해제
+    @Transactional
+    @PutMapping("/blockUsers/delete")
+    public ResponseEntity<Void> deleteBlockUser(@RequestBody BlockUserDTO dto) {
+        try {
+            service.deleteBlock(dto.getUserId(), dto.getBlockId());
+            return ResponseEntity.status(HttpStatus.OK).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
 }

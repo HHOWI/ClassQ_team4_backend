@@ -52,9 +52,5 @@ public class MatchingCategoryInfoService {
         return data;
     }
 
-    public List<MatchingCategoryInfo> findByCTSEQ(int code) {
-        return dao.findByCTSEQ(code);
-    }
-
 
 }

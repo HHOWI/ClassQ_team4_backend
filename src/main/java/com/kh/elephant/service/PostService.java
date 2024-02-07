@@ -82,7 +82,7 @@ public class PostService {
 
 
     public Post update(Post post) {
-// findById로 수정할 게시물을 찾고
+    // findById로 수정할 게시물을 찾고
         Post target = dao.findById(post.getPostSEQ()).orElse(null);
         if (target != null) {// 게시물이 null이 아닐경우
             target.setPostTitle(post.getPostTitle());

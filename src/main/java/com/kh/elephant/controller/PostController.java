@@ -6,6 +6,7 @@ import com.kh.elephant.service.*;
 import com.kh.elephant.domain.UserInfo;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
+import com.querydsl.jpa.JPAExpressions;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -63,37 +64,63 @@ public class PostController {
     @Autowired
     private SearchService searchService; // 검색 관련 서비스
 
-    // 게시글 전체 보기 http://localhost:8080/qiri/post
-    // OR
-    // 게시글 키워드로 검색 http://localhost:8080/qiri/post?keyword=1
+    // 매칭글 리스트 받아오기
     @GetMapping("/public/post")
     public ResponseEntity<List<Post>> postList(@RequestParam(name = "page", defaultValue = "1") int page,
-                                               @RequestParam(name = "board", required = false) Integer board,
-                                               @RequestParam(name = "keyword", required = false) String keyword) {
-        log.info("post List 호출 컨트롤러 진입;");
-        Sort sort = Sort.by("postSEQ").descending();
-        Pageable pageable = PageRequest.of(page - 1, 15, sort);
-        QPost qPost = QPost.post;
-        BooleanBuilder builder = new BooleanBuilder();
+                                               @RequestParam(name = "userId", required = false) String userId,
+                                                @RequestParam(name = "categoryTypeSEQ", required = false ) Integer categoryTypeSEQ,
+                                                @RequestParam(name = "placeSEQ", required = false) Integer placeSEQ,
+                                               @RequestParam(name = "placeTypeSEQ", required = false) Integer placeTypeSEQ) {
 
-        // postdelete가 'Y'가 아닌 게시물만 가져오도록 조건 추가
-        builder.and(qPost.postDelete.ne("Y"));
+        try {
+            Sort sort = Sort.by("postSEQ").descending();
+            Pageable pageable = PageRequest.of(page - 1, 12, sort);
 
-        if (board != null) {
-            BooleanExpression expression = qPost.board.boardSEQ.eq(board);
-            builder.and(expression);
+            QPost qPost = QPost.post;
+            QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
+            QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
+            QPlace qPlace = QPlace.place;
+
+            BooleanBuilder builder = new BooleanBuilder();
+
+            // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
+            builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
+
+            // 로그인했다면 차단한 유저의 게시글 필터링
+            if (userId != null) {
+                // 차단한 유저 목록에 있는 아이디와 게시물 작성자의 아이디가 일치하지 않는 게시물 가져오도록 조건 추가
+                builder.andNot(qPost.userInfo.userId.in(
+                        JPAExpressions.select(qBlockUsers.blockInfo.userId)
+                                .from(qBlockUsers)
+                                .where(qBlockUsers.userInfo.userId.eq(userId))
+                ));
+            }
+
+            // 카테고리타입을 받는다면 해당하는 카테고리타입으로 필터링
+            if (categoryTypeSEQ != null) {
+                builder.and(qPost.postSEQ.in(
+                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                                        .from(qMatchingCategoryInfo)
+                                                .where(qMatchingCategoryInfo.category.categoryType.ctSEQ.eq(categoryTypeSEQ))
+                        ));
+            }
+
+            // 지역값을 받는다면 필터링
+            if(placeSEQ != null) {
+                builder.and(qPost.place.placeSEQ.eq(placeSEQ));
+            } else if(placeTypeSEQ != null) {
+                builder.and(qPost.place.placeSEQ.in(
+                        JPAExpressions.select(qPlace.placeSEQ)
+                                .from(qPlace)
+                                .where(qPlace.placeType.placeTypeSEQ.eq(placeTypeSEQ))
+                ));
+            }
+
+            Page<Post> pageResult = postService.showAll(pageable, builder);
+            return ResponseEntity.status(HttpStatus.OK).body(pageResult.getContent());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        Page<Post> result = null;
-        if (keyword == null) {
-            // 키워드가 없거나 비어있는 경우 전체 게시물을 가져옴
-            result = postService.showAll(pageable, builder);
-        } else {
-            List<Post> searchResults = searchService.searchByKeyword(keyword);
-            Collections.sort(searchResults, Comparator.comparing(Post::getPostSEQ).reversed());
-            return ResponseEntity.status(HttpStatus.OK).body(searchResults);
-        }
-        // Page 객체에서 목록을 추출하여 반환
-        return ResponseEntity.status(HttpStatus.OK).body(result.getContent());
     }
 
 
@@ -212,31 +239,6 @@ public class PostController {
         // postService에 Spring Data JPA에서 제공하는 delete로 일치하는 id를 찾아서 삭제
     }
 
-    //카테고리타입SEQ받아서 해당하는 POST가져오기
-    @GetMapping("/post/categoryType/{code}")
-    public ResponseEntity<List<Post>> getPostsByCategoryType(@PathVariable int code) {
-        try {
-            List<MatchingCategoryInfo> matchingCategoryInfoList = mciService.findByCTSEQ(code);
-
-            // 겹치지 않는 post 객체만 저장할 Set 생성
-            Set<Post> uniquePosts = new HashSet<>();
-
-            for (MatchingCategoryInfo mci : matchingCategoryInfoList) {
-                Post post = mci.getPost();
-                if (!uniquePosts.contains(post)) {
-                    uniquePosts.add(post);
-                }
-            }
-            // Set을 다시 List로 변환
-            List<Post> postList = new ArrayList<>(uniquePosts);
-            // 최신순 정렬
-            postList.sort(Comparator.comparingInt(Post::getPostSEQ).reversed());
-            return ResponseEntity.status(HttpStatus.OK).body(postList);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
     // 내가쓴 매칭글 가지고 오기
     @GetMapping("/post/get/{userId}")
     public ResponseEntity<List<Post>> findPostByUserId(@PathVariable String userId) {
@@ -268,7 +270,6 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
-
 
 
 }
