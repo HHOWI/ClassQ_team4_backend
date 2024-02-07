@@ -40,13 +40,6 @@ public class CommentsService {
         return  dao.save(comments);
     }
 
-
-//    public Comments delete(int code) {
-//        Comments date = dao.findById(code).orElse(null);
-//        dao.delete(date);
-//        return date;
-//    }
-
     // 게시물 1개에 따른 댓글 전체 조회
     public List<Comments> findByPostSeq(int id) {
         return dao.findByPostSeq(id);
@@ -68,8 +61,18 @@ public class CommentsService {
                 .fetch();
     }
 
-
     public List<Comments> findCommentsByUserId(String userId) { return dao.findCommentsByUserId(userId); }
 
-
+    // 자식 댓글 같이 삭제
+    public void deleteParentAndChildren(int parentCommentsSEQ) {
+        List<Comments> children = dao.findByCommentsParentSeq(parentCommentsSEQ);
+        for (Comments child : children) {
+            child.setCommentDelete("Y");
+            dao.save(child);
+        }
+        Comments parent = dao.findById(parentCommentsSEQ).orElse(null);
+        if (parent != null) {
+            dao.delete(parent);
+        }
+    }
 }
