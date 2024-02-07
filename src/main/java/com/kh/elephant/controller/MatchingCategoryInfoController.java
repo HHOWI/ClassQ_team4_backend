@@ -44,7 +44,6 @@ public class MatchingCategoryInfoController {
     // 게시글seq로 게시글카테고리정보가져오기
     @GetMapping("/matchingCategoryInfo/{id}")
     public ResponseEntity<List<MatchingCategoryInfo>> getMatchingCategory(@PathVariable int id){
-        log.info("category :: " + id);
         try{ //post_seq를 테이블에서 검색하는 Service를 사용해 Post_SEQ를 찾는 컨트롤러
             if(service.findByPostSEQ(id) == null) {
             return ResponseEntity.status(HttpStatus.OK).body(null); // null일시 null 반환
@@ -128,7 +127,7 @@ public class MatchingCategoryInfoController {
                 return ResponseEntity.status(HttpStatus.OK).body(null);
             } else {
                 log.info("매칭 카테고리 정보가 없습니다.");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+                return ResponseEntity.status(HttpStatus.OK).body(null);
             }
         } catch (Exception e) {
             log.error("매칭 카테고리 정보 삭제 중 오류 발생", e);

@@ -77,13 +77,6 @@ public class UserInfo {
     @Column(name = "POPULARITY")
     private int popularity;
 
-    @Column(name = "rating")
-    private int rating;
-
-    @Column(name = "IS_ADMIN")
-    @ColumnDefault("N")
-    private String isAdmin;
-
     @Column(name = "IS_DELETED")
     @ColumnDefault("N")
     private String isDeleted;

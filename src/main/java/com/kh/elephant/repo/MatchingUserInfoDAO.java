@@ -14,11 +14,7 @@ import java.util.Optional;
 public interface MatchingUserInfoDAO extends JpaRepository<MatchingUserInfo, Integer> {
 
 
-    // 수락정보 포스트 공용SEQ 체킹용
     Optional<MatchingUserInfo> findByUserInfo_UserIdAndPost_PostSEQ(String userId, int postSEQ);
-
-
-
 
     @Query(value = "SELECT * FROM MATCHING_USER_INFO WHERE USER_ID !=:id AND POST_SEQ =:postSEQ AND MATCHING_ACCEPT !='H'", nativeQuery = true)
     List<MatchingUserInfo> findMatchingByPostSEQ(@Param("id") String id, @Param("postSEQ") int postSEQ);
@@ -36,7 +32,7 @@ public interface MatchingUserInfoDAO extends JpaRepository<MatchingUserInfo, Int
     @Query(value = "SELECT * FROM MATCHING_USER_INFO WHERE POST_SEQ = :code AND MATCHING_ACCEPT = 'Y'", nativeQuery = true)
     List<MatchingUserInfo> findAccept (@Param("code") int code);
 
-    @Query(value = "SELECT * FROM MATCHING_USER_INFO WHERE USER_ID = :id AND MATCHING_ACCEPT = 'Y' AND POST_REVIEW = 'N'", nativeQuery = true)
+    @Query(value = "SELECT MATCHING_USER_INFO.* FROM MATCHING_USER_INFO JOIN POST ON MATCHING_USER_INFO.POST_SEQ = POST.POST_SEQ WHERE MATCHING_USER_INFO.USER_ID = :id AND MATCHING_ACCEPT = 'Y' AND POST_REVIEW = 'N' AND MATCHED = 'Y'", nativeQuery = true)
     List<MatchingUserInfo> findByUserIdForPostReview(@Param("id") String id);
 
     @Transactional

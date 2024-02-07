@@ -38,5 +38,10 @@ public class ChatRoomService {
         dao.delete(data);
         return data;
     }
+
+    public void deleteChatRoom(int chatroomSeq) {
+        dao.deleteByRoomSEQ(chatroomSeq);
+
+    }
 }
 

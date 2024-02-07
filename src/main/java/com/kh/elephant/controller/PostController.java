@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 import java.awt.*;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -47,16 +48,16 @@ public class PostController {
     private PlaceTypeService placeTypeService; // 지역 관련 서비스
     @Autowired
     private PlaceTypeService pTypeService;
-
     @Autowired
     private BoardService boardService; // 게시판 관련 서비스
     @Autowired
     private CategoryService categoryService; // 카테고리 관련 서비스
     @Autowired
     private PostAttachmentsService paService; // 첨부 파일 관련 서비스
-
     @Autowired
     private MatchingCategoryInfoService mciService; // 선택한 카테고리를 MatchingCategoryInfo 테이블로 저장시키기 위한 서비스
+    @Autowired
+    private MatchingUserInfoService muiService;
 
     // 검색
     @Autowired
@@ -111,6 +112,7 @@ public class PostController {
     @PostMapping("/post") //PostMapping을 위한 메소드 경로 설정
     public ResponseEntity<Post> createPost(@RequestBody PostDTO dto) {
         // dto를 이용한 post 방식이기 때문에 post에 데이터를 넣어주고 db에 저장을 해야함
+
         try {
             // 게시글 작성에 필요한 Service들
             Place place = plService.show(dto.getPlaceSEQ());
@@ -134,8 +136,20 @@ public class PostController {
                     .userInfo(userInfo)
                     .board(board)
                     .build();
-            return ResponseEntity.ok().body(postService.create(post));
+
+            Post result = postService.create(post);
+
+            // 나의 매칭정보 저장(리뷰작성용)
+            MatchingUserInfo matchingUserInfo = MatchingUserInfo.builder()
+                    .post(result)
+                    .userInfo(userInfo)
+                    .matchingAccept("Y")
+                    .build();
+            muiService.create(matchingUserInfo);
+
+            return ResponseEntity.ok().body(result);
         } catch (Exception e) {
+            log.info("" + e);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -237,11 +251,9 @@ public class PostController {
     @GetMapping("/post_not_matched/{userId}")
     public ResponseEntity<List<Post>> findNotMatchedPostByUserId(@PathVariable String userId) {
         try {
-            List<Post> postList = postService.findNotMatchedPostByUserId(userId);
-            // 최신순 정렬
-            postList.sort(Comparator.comparingInt(Post::getPostSEQ).reversed());
+            // seq 숫자가 높은순으로 정렬해서 반환
+            return ResponseEntity.status(HttpStatus.OK).body(postService.findNotMatchedPostByUserId(userId).stream().sorted(Comparator.comparingInt(Post::getPostSEQ).reversed()).collect(Collectors.toList()));
 
-            return ResponseEntity.status(HttpStatus.OK).body(postList);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

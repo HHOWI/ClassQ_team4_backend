@@ -57,9 +57,7 @@ CREATE TABLE USER_INFO(
     MBTI VARCHAR2(8),       -- MBTI
     BIRTHDAY DATE,       -- 생일
     JOIN_DATE TIMESTAMP DEFAULT SYSDATE NOT NULL,        -- 가입날짜
-    POPULARITY NUMBER DEFAULT 0, -- (좋아요받은 수)
-    RATING NUMBER DEFAULT 0, -- 유저 평점(리뷰에서 받은 평점의 평균 0점 빼고 계산)
-    IS_ADMIN VARCHAR2(1) DEFAULT 'N' NOT NULL CHECK(IS_ADMIN IN ('Y', 'N')),      -- 관리자 권한 유무    
+    POPULARITY NUMBER DEFAULT 0, -- (좋아요받은 수) 
     IS_DELETED VARCHAR2(1) DEFAULT 'N' NOT NULL CHECK(IS_DELETED IN ('Y', 'N'))      -- 탈퇴 유무    
 );
 
@@ -117,7 +115,6 @@ CREATE TABLE MATCHING_USER_INFO (
     MATCHING_USER_INFO_SEQ NUMBER PRIMARY KEY, -- 매칭 신청자 유저 정보 SEQ(PK)
     POST_SEQ NUMBER,                    -- 매칭 SEQ(FK)
     USER_ID VARCHAR(50) NOT NULL,           -- 매칭 신청자 아이디(FK)
-    SCORE NUMBER DEFAULT 0 CHECK(SCORE IN (0, 1, 2, 3)), -- 받은 평점 (1~3점만 줄 수 있음 0점은 불가)
     MATCHING_ACCEPT VARCHAR2(5) DEFAULT 'N' CHECK(MATCHING_ACCEPT IN ('Y', 'N','H')), -- 매칭 승락 여부
     POST_REVIEW VARCHAR2(5) DEFAULT 'N' CHECK(POST_REVIEW IN ('Y', 'N')), -- 리뷰 작성 여부
     APPLICATION_DATE TIMESTAMP DEFAULT SYSDATE -- 신청시간
