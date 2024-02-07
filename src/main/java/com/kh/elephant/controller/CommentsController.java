@@ -153,16 +153,24 @@ public class CommentsController {
     }
 
 
-    // 댓글 삭제  : DELETE - http://localhost:8080/qiri/post/comments/delete
+    // 댓글 삭제
     @PutMapping("/post/comments/delete")
-    public ResponseEntity<Comments> delete(@RequestBody Comments vo, @AuthenticationPrincipal String id) {
-        vo.setCommentDesc(vo.getCommentDesc());
-        vo.setCommentDate(new Date());
-        vo.setCommentDelete("Y");
-        vo.setCommentsParentSeq(vo.getCommentsParentSeq());
-        vo.setUserInfo(vo.getUserInfo());
-        vo.setSecretComment(vo.getSecretComment());
-        return ResponseEntity.status(HttpStatus.OK).body(comments.delete(vo));
+    public ResponseEntity<Void> delete(@RequestBody Comments vo, @AuthenticationPrincipal String id) {
+        // 삭제 대상 댓글이 부모 댓글인지 확인
+        if (vo.getCommentsParentSeq() == null) {
+            // 부모 댓글 삭제 처리
+            comments.deleteParentAndChildren(vo.getCommentsSEQ());
+        } else {
+            // 자식 댓글 삭제 처리
+            vo.setCommentDesc(vo.getCommentDesc());
+            vo.setCommentDate(new Date());
+            vo.setCommentDelete("Y");
+            vo.setUserInfo(vo.getUserInfo());
+            vo.setSecretComment(vo.getSecretComment());
+            comments.delete(vo);
+        }
+        return ResponseEntity.status(HttpStatus.OK).build();
     }
+
 }
 
