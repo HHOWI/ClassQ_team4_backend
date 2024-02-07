@@ -62,41 +62,65 @@ public class PostAttachmentsController {
 
     // 게시글 첨부 파일  추가 http://localhost:8080/qiri/post
     @PostMapping("/postAttachments")
-    public ResponseEntity<Boolean> uploadFiles(@RequestParam(required = false)List<MultipartFile> files, @RequestParam int postId) throws IOException {
+    public ResponseEntity<Boolean> uploadFiles(@RequestParam(required = false)List<MultipartFile> files,
+            @RequestParam(required = false) List<String> urls, @RequestParam int postId) throws IOException {
         try{
-            List<String> ImageList = new ArrayList<>();
+
 
             List<PostAttachments> deleteList = service.findByPostSEQ(postId);
-
             if(!deleteList.isEmpty())
             {
+
                 for (PostAttachments postAttachments : deleteList) {
+
                     service.delete(postAttachments.getPostAttachmentSEQ());
                 }
             }
-            if (files.isEmpty()) {
-                //  클라이언트가 사진을 첨부하지 않았다면 아무 동작을 하지 않음
-                return ResponseEntity.status(HttpStatus.OK).body(false);
+
+            // 기존 새롭게 덮지 않은 이미지 인경우.. 즉, urls에 뭔가 데이터가 들어 있는 경우에..
+            if(urls == null)
+            {
+                // 기존 url 이 달려있는 기존 데이터가 넘어오지 않고 새롭게 첨부된 무언가가 넘어올떄..
+
+                if(files == null)
+                {
+                    return ResponseEntity.status(HttpStatus.OK).body(false);
+                }
+
+                for (MultipartFile file : files) { // 첨부파일이 여러개 일수 있으니 for문 사용
+                    String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename(); // 파일 랜덤 이름 부여랑 원래 이름
+                    String uploadPath = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
+
+                    InputStream inputStream = file.getInputStream(); // 파일 데이터를 읽기
+                    Path filePath = Paths.get(uploadPath,fileName); //Paths.get를 사용하여 파일 경로를 생성
+                    Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING); // 파일 중복으로 올라올 시 덮어쓰기
+
+                    log.info(fileName);
+
+
+
+                    PostAttachments postAttachments = PostAttachments.builder()
+                            .postCode(postId)
+                            .attachmentURL(fileName)
+                            .build();
+                    service.create(postAttachments);
+                }
+
             }
-            for (MultipartFile file : files) { // 첨부파일이 여러개 일수 있으니 for문 사용
-                String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename(); // 파일 랜덤 이름 부여랑 원래 이름
-                String uploadPath = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
+            else{
+                // 하나라도 기존의 데이터가 넘어 왔을떄..
+                for (String path : urls) { // 첨부파일이 여러개 일수 있으니 for문 사용
+                    PostAttachments postAttachments = PostAttachments.builder()
+                            .postCode(postId)
+                            .attachmentURL(path)
+                            .build();
+                    service.create(postAttachments);
+                }
 
-                InputStream inputStream = file.getInputStream(); // 파일 데이터를 읽기
-                Path filePath = Paths.get(uploadPath,fileName); //Paths.get를 사용하여 파일 경로를 생성
-                Files.copy(inputStream, filePath, StandardCopyOption.REPLACE_EXISTING); // 파일 중복으로 올라올 시 덮어쓰기
-
-                log.info(fileName);
-                String imageUrl =  fileName;
-                ImageList.add(imageUrl); // list에 추가
-
-                PostAttachments postAttachments = PostAttachments.builder()
-                        .postCode(postId)
-                        .attachmentURL(imageUrl)
-                        .build();
-                service.create(postAttachments);
             }
+
             return ResponseEntity.status(HttpStatus.OK).body(true);
+
         }catch (Exception e){
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
@@ -118,7 +142,8 @@ public class PostAttachmentsController {
             log.info(files.toString());
 
             for(int i = 0 ; i < files.size(); i++)
-            {File file = new File(path + "\\" + files.get(i));
+            {
+                File file = new File(path + "\\" + files.get(i));
                 if(file.exists())
                 {
                     if(file.delete())
@@ -128,8 +153,6 @@ public class PostAttachmentsController {
                     else {
                         log.info(i + "번째파일삭제 실패요...@@@@@@@@@@@@@@@@@@@@@@@");
                     }
-                }else {
-
                 }
             }
         }
