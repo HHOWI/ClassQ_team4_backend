@@ -5,8 +5,9 @@ import com.kh.elephant.security.TokenProvider;
 import com.kh.elephant.service.*;
 import com.kh.elephant.domain.UserInfo;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,10 +15,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -33,8 +32,6 @@ import java.util.stream.Collectors;
 @CrossOrigin(origins = {"*"}, maxAge = 6000)
 public class PostController {
 
-    @Value("C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload") // 첨부파일 업로드 경로
-    private String uploadPath;
     @Autowired
     private TokenProvider tokenProvider; // token을 이용한 유저 정보
     @Autowired
@@ -59,18 +56,17 @@ public class PostController {
     private MatchingCategoryInfoService mciService; // 선택한 카테고리를 MatchingCategoryInfo 테이블로 저장시키기 위한 서비스
     @Autowired
     private MatchingUserInfoService muiService;
-
-    // 검색
     @Autowired
-    private SearchService searchService; // 검색 관련 서비스
+    private EntityManager entityManager;
 
-    // 매칭글 리스트 받아오기
+    // 매칭글 리스트 받아오기 조건문, 쿼리DSL 통해 동시 필터링 구현
     @GetMapping("/public/post")
     public ResponseEntity<List<Post>> postList(@RequestParam(name = "page", defaultValue = "1") int page,
                                                @RequestParam(name = "userId", required = false) String userId,
-                                                @RequestParam(name = "categoryTypeSEQ", required = false ) Integer categoryTypeSEQ,
-                                                @RequestParam(name = "placeSEQ", required = false) Integer placeSEQ,
-                                               @RequestParam(name = "placeTypeSEQ", required = false) Integer placeTypeSEQ) {
+                                               @RequestParam(name = "categoryTypeSEQ", required = false ) Integer categoryTypeSEQ,
+                                               @RequestParam(name = "placeSEQ", required = false) Integer placeSEQ,
+                                               @RequestParam(name = "placeTypeSEQ", required = false) Integer placeTypeSEQ,
+                                               @RequestParam(name = "onMyCategory", required = false) Integer onMyCategory)  {
 
         try {
             Sort sort = Sort.by("postSEQ").descending();
@@ -80,8 +76,10 @@ public class PostController {
             QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
             QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
             QPlace qPlace = QPlace.place;
+            QUserCategoryInfo qUserCategoryInfo = QUserCategoryInfo.userCategoryInfo;
 
             BooleanBuilder builder = new BooleanBuilder();
+            JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
 
             // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
             builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
@@ -113,6 +111,23 @@ public class PostController {
                         JPAExpressions.select(qPlace.placeSEQ)
                                 .from(qPlace)
                                 .where(qPlace.placeType.placeTypeSEQ.eq(placeTypeSEQ))
+                ));
+            }
+
+            // 내 관심사만 필터링
+            if (onMyCategory == 1) {
+                // 내 아이디로 검색하여 결과에 있는 categorySEQ 리스트 가져오기
+                List<Integer> categorySeqList = queryFactory
+                        .select(qUserCategoryInfo.category.categorySEQ)
+                        .from(qUserCategoryInfo)
+                        .where(qUserCategoryInfo.userInfo.userId.eq(userId))
+                        .fetch();
+
+                // 매칭카테고리인포와 포스트를 postSEQ로 조인하여 카테고리SEQ가 포함되어 있는 POST만 필터링
+                builder.and(qPost.postSEQ.in(
+                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                                .from(qMatchingCategoryInfo)
+                                .where(qMatchingCategoryInfo.category.categorySEQ.in(categorySeqList))
                 ));
             }
 
@@ -270,6 +285,20 @@ public class PostController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
+
+    // 게시글 조회수 증가
+    @PutMapping("/post_viewcount/{postSEQ}")
+    public ResponseEntity viewCount(@PathVariable int postSEQ) {
+        try {
+            Post post = postService.show(postSEQ);
+            post.setPostView(post.getPostView() + 1);
+            postService.update(post);
+            return ResponseEntity.status(HttpStatus.OK).body(null);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+    }
+
 
 
 }

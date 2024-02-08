@@ -55,12 +55,6 @@ public class PostService {
         // Spring Data JPA에서 제공하는 findById 사용하여
         // int값으로 설정한 id를 검색해서 id가 일치하면 일치한 게시물을 보여줌 id가 null일 경우 null 반환
 
-        if(post != null){
-            post.setPostView(post.getPostView()+1);// post가 null이 아닐시 조회수 1 증가
-
-            dao.save(post); // 증가된 조회수 저장
-        }
-
         return post;
     }
 
