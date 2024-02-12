@@ -27,7 +27,8 @@ public class CommentsController {
     @Autowired
     private PostService postService;
     @Autowired
-    private NotificationMessageController notifyController;
+    private NotificationMessageService nmService;
+
 
 
     // 게시물 1개에 따른 댓글 전체 조회 : GET - http://localhost:8080/qiri/public/post/1/comments
@@ -42,7 +43,7 @@ public class CommentsController {
             for (Comments item : topList) {
                 if ("N".equals(item.getCommentDelete())) {
                 CommentsDTO dto = new CommentsDTO();
-                dto.setPost(item.getPost());
+                dto.setPost(item.getPost().getPostSEQ());
                 dto.setCommentsSEQ(item.getCommentsSEQ());
                 dto.setCommentDesc(item.getCommentDesc());
                 dto.setCommentDate(item.getCommentDate());
@@ -76,7 +77,7 @@ public class CommentsController {
                 total++;
             }
             CommentsDTO dto = new CommentsDTO();
-            dto.setPost(item.getPost());
+            dto.setPost(item.getPost().getPostSEQ());
             dto.setCommentsSEQ(item.getCommentsSEQ());
             dto.setCommentDesc(item.getCommentDesc());
             dto.setCommentDate(item.getCommentDate());
@@ -113,7 +114,7 @@ public class CommentsController {
         vo.setUserInfo(userInfo);
         vo.setSecretComment("N"); // 새로 작성된 댓글은 기본적으로 비밀댓글이 아님
 
-        Post post = postService.show(vo.getPost());
+        Post post = postService.show(vo.getPost().getPostSEQ());
         Comments comm = new Comments();
 
         if (vo.getCommentsParentSeq() != null) {
@@ -127,13 +128,13 @@ public class CommentsController {
             // 부모댓글 여부를 통해 대댓글인지 일반댓글인지 확인
             if (vo.getCommentsParentSeq() == null) {
                 // 일반댓글이라면 게시글 작성자에게 알림처리
-                notifyController.notifyProcessing(post.getUserInfo(), post.getPostTitle() + "에 댓글이 작성되었습니다.", post, null);
+                nmService.notifyProcessing(post.getUserInfo(), post.getPostTitle() + "에 댓글이 작성되었습니다.", post, null);
             }
             // 대댓글 이라면
             else {
                 // 대댓글의 작성자와 댓글 작성자가 같지 않을때(본인이 작성한 댓글이 아닐때) 에만 알림처리
                 if (!comm.getUserInfo().getUserId().equals(id)) {
-                    notifyController.notifyProcessing(comments.show(vo.getCommentsParentSeq()).getUserInfo(), post.getPostTitle() + "에 작성한 댓글에 대댓글이 작성되었습니다.", post, null);
+                    nmService.notifyProcessing(comments.show(vo.getCommentsParentSeq()).getUserInfo(), post.getPostTitle() + "에 작성한 댓글에 대댓글이 작성되었습니다.", post, null);
                 }
             }
         }

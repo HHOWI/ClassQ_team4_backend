@@ -21,8 +21,7 @@ public class BlockUsersController {
 
     @Autowired
     private BlockUsersService service;
-    @Autowired
-    private UserInfoService userInfoService;
+
 
     // 유저간 밴 전체 보기
     @GetMapping("/blockUsers")
@@ -44,13 +43,7 @@ public class BlockUsersController {
     @PostMapping("/blockUsers")
     public ResponseEntity<BlockUsers> create(@RequestBody BlockUserDTO dto) {
         try {
-
-            BlockUsers blockUsers = BlockUsers.builder()
-                    .userInfo(userInfoService.show(dto.getUserId()))
-                    .blockInfo(userInfoService.show(dto.getBlockId()))
-                    .blockReason(dto.getBlockReason())
-                    .build();
-            return ResponseEntity.status(HttpStatus.OK).body(service.create(blockUsers));
+            return ResponseEntity.status(HttpStatus.OK).body(service.addBlockUser(dto.getUserId(), dto.getBlockId(), dto.getBlockReason()));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

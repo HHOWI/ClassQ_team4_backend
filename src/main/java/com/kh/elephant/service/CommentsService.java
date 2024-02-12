@@ -48,7 +48,7 @@ public class CommentsService {
     public List<Comments> getAllTopLevelComments(int postSeq) {
         return queryFactory.selectFrom(qComments)
                 .where(qComments.parent.isNull())
-                .where(qComments.post.eq(postSeq))
+                .where(qComments.post.postSEQ.eq(postSeq))
                 .orderBy(qComments.commentDate.desc())
                 .fetch();
     }
@@ -56,7 +56,7 @@ public class CommentsService {
     public List<Comments> getRepliesByCommentId(Integer parentId, int postSeq) {
         return queryFactory.selectFrom(qComments)
                 .where(qComments.commentsParentSeq.eq(parentId))
-                .where(qComments.post.eq(postSeq))
+                .where(qComments.post.postSEQ.eq(postSeq))
                 .orderBy(qComments.commentDate.asc())
                 .fetch();
     }

@@ -25,18 +25,14 @@ public class NotificationMessageController {
 
     @Autowired
     NotificationMessageService nmService;
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+
 
 
     // 나의 모든 알림목록 가져오기
     @GetMapping("/public/notify/{id}")
     public ResponseEntity<List<NotificationMessage>> findByUserId(@PathVariable String id) {
         try {
-            // 시간 내림차순으로 정렬 후 반환
-            return ResponseEntity.status(HttpStatus.OK).body(nmService.findByUserId(id).stream()
-                    .sorted(Comparator.comparing(NotificationMessage::getSentTime).reversed())
-                    .collect(Collectors.toList()));
+            return ResponseEntity.status(HttpStatus.OK).body(nmService.findByUserId(id));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -75,18 +71,6 @@ public class NotificationMessageController {
         }
     }
 
-    // 공통 메서드 - 알림 저장, 웹소켓 전송
-    public void notifyProcessing(UserInfo userInfo, String message, Post post, ChatRoom chatRoom) {
-            // 알림 DB저장
-            NotificationMessage notificationMessage = NotificationMessage.builder()
-                    .userInfo(userInfo)
-                    .message(message)
-                    .post(post)
-                    .chatRoom(chatRoom)
-                    .build();
-            nmService.create(notificationMessage);
-            // 웹소켓으로 알림 전송
-            messagingTemplate.convertAndSend("/sub/notification/" + userInfo.getUserId(), notificationMessage);
-    }
+
 
 }

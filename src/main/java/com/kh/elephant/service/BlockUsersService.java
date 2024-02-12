@@ -14,6 +14,8 @@ public class BlockUsersService {
 
     @Autowired
     private BlockUsersDAO dao;
+    @Autowired
+    private UserInfoService userInfoService;
 
     //전체 차단 정보
     public List<BlockUsers> showAll() {
@@ -32,6 +34,16 @@ public class BlockUsersService {
 
     public BlockUsers create(BlockUsers blockUsers) {
         return dao.save(blockUsers);
+    }
+
+    // 유저 차단
+    public BlockUsers addBlockUser(String userId, String blockId, String blockReason) {
+        BlockUsers blockUsers = BlockUsers.builder()
+                .userInfo(userInfoService.show(userId))
+                .blockInfo(userInfoService.show(blockId))
+                .blockReason(blockReason)
+                .build();
+        return this.create(blockUsers);
     }
 
 }

@@ -34,7 +34,7 @@ public class MatchingUserInfoController {
     @Autowired
     private TokenProvider tokenProvider;
     @Autowired
-    private NotificationMessageController notifyController;
+    private NotificationMessageService nmService;
 
 
 
@@ -75,7 +75,7 @@ public class MatchingUserInfoController {
 
         // 없다면 작동할 매서드
         // 매칭 신청 알림처리
-        notifyController.notifyProcessing(post.getUserInfo(), post.getPostTitle() + "에서의 끼리 신청이 있습니다.", post, null);
+            nmService.notifyProcessing(post.getUserInfo(), post.getPostTitle() + "에서의 끼리 신청이 있습니다.", post, null);
 
         // 매칭 신청정보 DB 저장
         MatchingUserInfo matchingUserInfo = MatchingUserInfo.builder()
@@ -106,7 +106,7 @@ public class MatchingUserInfoController {
             int result = muiService.matchingAccept(dto.getPostSEQ(), dto.getApplicantId());
             Post post = postService.show(dto.getPostSEQ());
             // 알림처리
-            notifyController.notifyProcessing(uiService.show(dto.getApplicantId()), "신청한 " + post.getPostTitle() + " 끼리가 승락되었습니다.", post, null);
+            nmService.notifyProcessing(uiService.show(dto.getApplicantId()), "신청한 " + post.getPostTitle() + " 끼리가 승락되었습니다.", post, null);
 
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e) {

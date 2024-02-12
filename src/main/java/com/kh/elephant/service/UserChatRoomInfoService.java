@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class UserChatRoomInfoService {
@@ -42,7 +44,10 @@ public class UserChatRoomInfoService {
     }
 
     public List<UserChatRoomInfo> findByUserId(String id) {
-        return dao.findByUserId(id);
+        // 먼저 참여한 채팅방부터 정렬하여 반환
+        return dao.findByUserId(id).stream()
+                .sorted(Comparator.comparing(UserChatRoomInfo::getJoinDate).reversed())
+                .collect(Collectors.toList());
     }
 
     public UserChatRoomInfo delete(int code) {
@@ -56,7 +61,10 @@ public class UserChatRoomInfoService {
     }
 
     public List<UserChatRoomInfo> findByUserChatRoomSEQ(int code) {
-        return dao.findByChatRoomSEQ(code);
+        // 정렬 후 반환
+        return dao.findByChatRoomSEQ(code).stream()
+                .sorted(Comparator.comparing(ucri -> ucri.getUserInfo().getUserNickname()))
+                .collect(Collectors.toList());
     }
 
     public int joinMessage(String id, int code) {

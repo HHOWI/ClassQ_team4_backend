@@ -7,7 +7,9 @@ import com.kh.elephant.repo.ChatMessageDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatMessageService {
@@ -44,7 +46,7 @@ public class ChatMessageService {
     }
 
     public List<ChatMessage> messageFindByChatroomSEQ(int id) {
-        return dao.messageFindByChatroomSEQ(id);
+        return dao.messageFindByChatroomSEQ(id).stream().sorted(Comparator.comparing(ChatMessage::getChatMessageSEQ)).collect(Collectors.toList());
     }
 
     public void deleteChatMessages(int chatroomSeq) {

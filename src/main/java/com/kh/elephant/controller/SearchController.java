@@ -33,20 +33,11 @@ public class SearchController {
     @Autowired
     private PostService postService;
 
-    // 키워드에 따른 게시물 전체 조회
-    @GetMapping("public/search")
-    public ResponseEntity<List<Post>> searchPost(@RequestParam("keyword") String keyword) {
-        Sort sort = Sort.by("postSEQ").descending();
-        List<Post> searchResults  = searchService.searchByKeyword(keyword);
-        return new ResponseEntity<>(searchResults, HttpStatus.OK);
-
-    }
 
     //게시글 검색
     @GetMapping("search/{userId}_{keyword}/{page}")
     public ResponseEntity<List<Post>> headerSearch(@PathVariable("userId") String userId, @PathVariable("keyword") String keyword, @PathVariable("page") int page) {
 
-        log.info("검색 테스트" + userId + keyword + page);
         try{
             Sort sort = Sort.by("postSEQ").descending();
             Pageable pageable = PageRequest.of(page - 1, 12, sort);

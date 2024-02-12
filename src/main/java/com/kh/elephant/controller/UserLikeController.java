@@ -26,10 +26,7 @@ public class UserLikeController {
 
     @Autowired
     private UserLikeService userLikeService;
-    @Autowired
-    private UserInfoService userInfoService;
-    @Autowired
-    NotificationMessageController notifyController;
+
 
     @GetMapping("/userLike")
     public ResponseEntity<List<UserLike>> showAll() {
@@ -49,27 +46,11 @@ public class UserLikeController {
         }
     }
     // 유저 좋아요 버튼누르면 작동할 코드
-    @Transactional
+
     @PostMapping("/userInfo/userlike")
     public ResponseEntity<UserLike> create(@RequestBody UserLikeDTO dto) {
         try {
-            // 좋아요db에 중복된 데이터가 없는지(좋아요 중복 방지), 누르는 유저와 타겟유저가 다른지(셀프 좋아요 방지)
-            if(userLikeService.duplicateCheck(dto.getLikeUpUser(), dto.getLikeUpTarget()) == null && !dto.getLikeUpUser().equals(dto.getLikeUpTarget())) {
-                UserInfo targetUser = userInfoService.show(dto.getLikeUpTarget());
-                UserLike userLike = UserLike.builder()
-                        .likeUpUser(userInfoService.show(dto.getLikeUpUser()))
-                        .likeUpTarget(targetUser)
-                        .build();
-                // 좋아요 정보 DB에 추가
-                userLikeService.create(userLike);
-                // 유저 좋아요 정보 DB에서 ID 검색후 카운트만큼 유저DB의 좋아요 수치 업데이트
-                targetUser.setPopularity(userLikeService.findByTarget(dto.getLikeUpTarget()));
-                userInfoService.update(targetUser);
-                // 좋아요 받았다는 알림 발송, 알림정보 db저장
-                notifyController.notifyProcessing(targetUser, "좋아요를 받았습니다.", null, null);
-
-                return ResponseEntity.status(HttpStatus.OK).body(null);
-            }
+           userLikeService.userLikeProcess(dto);
             return ResponseEntity.status(HttpStatus.OK).body(null);
         } catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();

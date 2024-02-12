@@ -20,6 +20,7 @@ import java.util.Date;
 @DynamicInsert
 @DynamicUpdate
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@Table(name = "comments")
 public class Comments {
 
     @Id
@@ -28,12 +29,10 @@ public class Comments {
     @SequenceGenerator(name = "commentSequence", sequenceName = "SEQ_COMMENTS", allocationSize = 1)
     private int commentsSEQ;
 
-//    @ManyToOne
-//    @JoinColumn(name = "POST_SEQ")
-//    private Post post;
+    @ManyToOne
+    @JoinColumn(name = "POST_SEQ")
+    private Post post;
 
-    @Column(name = "POST_SEQ")
-    private int post;
 
     @Column(name = "COMMENTS_PARENT_SEQ")
     private Integer commentsParentSeq;
