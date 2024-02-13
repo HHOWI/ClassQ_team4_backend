@@ -20,6 +20,8 @@ public class CommentsDTO {
     private UserInfo userInfo;
     private String commentDesc;
     private String commentDelete;
+    private Integer commentsParentSeq;
+    private String userId;
     @Builder.Default
     private List<Comments> replies = new ArrayList<>();
 }

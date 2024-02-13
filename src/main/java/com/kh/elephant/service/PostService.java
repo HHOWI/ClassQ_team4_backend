@@ -21,9 +21,6 @@ public class PostService {
     private PostDAO dao;
 
     @Autowired
-    private UserInfoDAO userDao;
-
-    @Autowired
     private PostAttachmentsService postAttachmentsService;
 
     @Autowired
@@ -37,7 +34,6 @@ public class PostService {
 
     @Autowired
     private PostAttachmentsService attachmentsService;
-
 
     @Autowired UserInfoService userService;
     @Autowired
@@ -73,8 +69,6 @@ public class PostService {
         return dao.save(post);
     }
 
-
-
     public Post update(Post post) {
     // findById로 수정할 게시물을 찾고
         Post target = dao.findById(post.getPostSEQ()).orElse(null);
@@ -92,15 +86,6 @@ public class PostService {
         dao.delete(post); // Spring Data JPA에서 제공하는 delete로 삭제
         return post;
     }
-
-
-    public List<Post> findByBoardCode(int code) {
-        //POST DAO에 작성한 쿼리문을 사용해 BOARD를 POST 테이블에서 검색
-        return dao.findByBoardCode(code);
-    }
-
-
-
 
     public List<Post> findPostByUserId(String userId) { return dao.findPostByUserId(userId); }
 

@@ -73,11 +73,11 @@ public class ChatController {
     }
 
     //채팅방의 채팅보기
-    @GetMapping("/chat/room/message/{id}")
-    public ResponseEntity<List<ChatMessage>> messageFindByChatroomSEQ(@PathVariable int id) {
+    @GetMapping("/chat/room/message/{chatRoomSEQ}_{userId}")
+    public ResponseEntity<List<ChatMessage>> messageFindByChatroomSEQ(@PathVariable int chatRoomSEQ, @PathVariable String userId) {
         try {
             // SEQ순으로 정렬하여 반환
-            return ResponseEntity.status(HttpStatus.OK).body(cmService.messageFindByChatroomSEQ(id));
+            return ResponseEntity.status(HttpStatus.OK).body(cmService.messageFindByChatroomSEQ(chatRoomSEQ, userId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

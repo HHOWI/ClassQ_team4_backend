@@ -4,17 +4,21 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
 
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 
 @Entity
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @DynamicInsert
@@ -32,7 +36,6 @@ public class Comments {
     @ManyToOne
     @JoinColumn(name = "POST_SEQ")
     private Post post;
-
 
     @Column(name = "COMMENTS_PARENT_SEQ")
     private Integer commentsParentSeq;
@@ -57,4 +60,5 @@ public class Comments {
 
     @Column(name = "COMMENTS_DELETE")
     private String commentDelete;
+
 }

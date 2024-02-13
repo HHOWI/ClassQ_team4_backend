@@ -4,6 +4,7 @@ import com.kh.elephant.domain.*;
 import com.kh.elephant.service.CommentsService;
 import com.kh.elephant.service.NotificationMessageService;
 import com.kh.elephant.service.PostService;
+import com.kh.elephant.service.UserInfoService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -13,8 +14,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @RestController
 @RequestMapping("/qiri/*")
@@ -23,11 +27,13 @@ public class CommentsController {
 
 
     @Autowired
-    private CommentsService comments;
+    private CommentsService commentsService;
     @Autowired
     private PostService postService;
     @Autowired
     private NotificationMessageService nmService;
+    @Autowired
+    private UserInfoService userInfoService;
 
 
 
@@ -35,8 +41,7 @@ public class CommentsController {
     @GetMapping("/public/post/{id}/comments")
     public ResponseEntity<List<CommentsDTO>> commentList(@PathVariable int id) {
         try {
-            List<Comments> topList = comments.getAllTopLevelComments(id);
-            log.info("top : " + topList);
+            List<Comments> topList = commentsService.getAllTopLevelComments(id);
 
             List<CommentsDTO> response = new ArrayList<>();
 
@@ -49,13 +54,15 @@ public class CommentsController {
                 dto.setCommentDate(item.getCommentDate());
                 dto.setUserInfo(item.getUserInfo());
                 dto.setCommentDelete(item.getCommentDelete());
-                List<Comments> result = comments.getRepliesByCommentId(item.getCommentsSEQ(), id);
+                List<Comments> result = commentsService.getRepliesByCommentId(item.getCommentsSEQ(), id);
                 dto.setReplies(result);
                 response.add(dto);
                 }
             }
 
-            return ResponseEntity.status(HttpStatus.OK).body(response);
+            return ResponseEntity.status(HttpStatus.OK).body(response.stream()
+                    .sorted(Comparator.comparingInt(CommentsDTO::getCommentsSEQ))
+                    .collect(Collectors.toList()));
         } catch (Exception e) {
             return null;
         }
@@ -65,7 +72,7 @@ public class CommentsController {
     // 게시물 1개에 따른 댓글 개수 조회 : GET - http://localhost:8080/qiri/public/post/1/comments
     @GetMapping("/public/post/{id}/comment")
     public ResponseEntity<Integer> commentsize(@PathVariable int id) {
-        List<Comments> topList = comments.findByPostSeq(id);
+        List<Comments> topList = commentsService.findByPostSeq(id);
         log.info("top : " + topList);
 
         int total = 0;  // 댓글 개수 초기화
@@ -83,7 +90,7 @@ public class CommentsController {
             dto.setCommentDate(item.getCommentDate());
             dto.setUserInfo(item.getUserInfo());
             dto.setCommentDelete(item.getCommentDelete());
-            List<Comments> result = comments.getRepliesByCommentId(item.getCommentsSEQ(), id);
+            List<Comments> result = commentsService.getRepliesByCommentId(item.getCommentsSEQ(), id);
             dto.setReplies(result);
             response.add(dto);
         }
@@ -98,7 +105,7 @@ public class CommentsController {
     @GetMapping("/comments/get/{userId}")
     public ResponseEntity<List<Comments>> getUserComments(@PathVariable String userId) {
         try {
-            List<Comments> userComments = comments.findCommentsByUserId(userId);
+            List<Comments> userComments = commentsService.findCommentsByUserId(userId);
             return ResponseEntity.status(HttpStatus.OK).body(userComments);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
@@ -108,67 +115,71 @@ public class CommentsController {
 
     // 댓글 추가 : POST - http://localhost:8080/qiri/post/comments
     @PostMapping("/post/comments")
-    public ResponseEntity<Comments> create(@RequestBody Comments vo, @AuthenticationPrincipal String id) {
-        UserInfo userInfo = new UserInfo();
-        userInfo.setUserId(id);
-        vo.setUserInfo(userInfo);
-        vo.setSecretComment("N"); // 새로 작성된 댓글은 기본적으로 비밀댓글이 아님
+    public ResponseEntity<Comments> create(@RequestBody CommentsDTO dto) {
+        try {
+        Post post = postService.show(dto.getPost());
 
-        Post post = postService.show(vo.getPost().getPostSEQ());
-        Comments comm = new Comments();
+            Comments comments = Comments.builder()
+                    .post(post)
+                    .commentsParentSeq(dto.getCommentsParentSeq())
+                    .userInfo(userInfoService.show(dto.getUserId()))
+                    .commentDesc(dto.getCommentDesc())
+                    .build();
 
-        if (vo.getCommentsParentSeq() != null) {
-            comm = comments.show(vo.getCommentsParentSeq());
+        Comments comm = null;
+        if (dto.getCommentsParentSeq() != null) {
+            comm = commentsService.show(dto.getCommentsParentSeq());
         }
-
         // 댓글 추가 알림 db 저장 및 웹소켓 알림 발송
         // 일반댓글 처리
         // 게시글 작성자와 댓글 작성자가 같지 않을때(본인이 작성한 게시글이 아닐때) 에만 알림처리
-        if (!post.getUserInfo().getUserId().equals(id)) {
+        if (!post.getUserInfo().getUserId().equals(dto.getUserId())) {
             // 부모댓글 여부를 통해 대댓글인지 일반댓글인지 확인
-            if (vo.getCommentsParentSeq() == null) {
+            if (dto.getCommentsParentSeq() == null) {
                 // 일반댓글이라면 게시글 작성자에게 알림처리
                 nmService.notifyProcessing(post.getUserInfo(), post.getPostTitle() + "에 댓글이 작성되었습니다.", post, null);
             }
             // 대댓글 이라면
             else {
                 // 대댓글의 작성자와 댓글 작성자가 같지 않을때(본인이 작성한 댓글이 아닐때) 에만 알림처리
-                if (!comm.getUserInfo().getUserId().equals(id)) {
-                    nmService.notifyProcessing(comments.show(vo.getCommentsParentSeq()).getUserInfo(), post.getPostTitle() + "에 작성한 댓글에 대댓글이 작성되었습니다.", post, null);
+                if (!comm.getUserInfo().getUserId().equals(dto.getUserId())) {
+                    nmService.notifyProcessing(commentsService.show(dto.getCommentsParentSeq()).getUserInfo(), post.getPostTitle() + "에 작성한 댓글에 대댓글이 작성되었습니다.", post, null);
                 }
             }
         }
-        return ResponseEntity.status(HttpStatus.OK).body(comments.create(vo));
+        return ResponseEntity.status(HttpStatus.OK).body(commentsService.create(comments));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
     // 댓글 수정 : PUT - http://localhost:8080/qiri/post/comments
     @PutMapping("/post/comments")
-    public ResponseEntity<Comments> update(@RequestBody Comments vo, @AuthenticationPrincipal String id) {
-        UserInfo userInfo = new UserInfo();
-        userInfo.setUserId(id);
-        vo.setUserInfo(userInfo);
-        vo.setCommentDate(new Date());
-        vo.setSecretComment("N");
-        vo.setCommentDelete("N");
-        return ResponseEntity.status(HttpStatus.OK).body(comments.update(vo));
+    public ResponseEntity<Comments> update(@RequestBody Comments vo) {
+
+        try {
+            Comments comments = commentsService.show(vo.getCommentsSEQ());
+            comments.setCommentDesc(vo.getCommentDesc());
+
+            return ResponseEntity.status(HttpStatus.OK).body(commentsService.update(comments));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
     }
 
 
     // 댓글 삭제
     @PutMapping("/post/comments/delete")
-    public ResponseEntity<Void> delete(@RequestBody Comments vo, @AuthenticationPrincipal String id) {
+    public ResponseEntity<Void> delete(@RequestBody Comments vo) {
         // 삭제 대상 댓글이 부모 댓글인지 확인
         if (vo.getCommentsParentSeq() == null) {
             // 부모 댓글 삭제 처리
-            comments.deleteParentAndChildren(vo.getCommentsSEQ());
+            commentsService.deleteParentAndChildren(vo.getCommentsSEQ());
         } else {
             // 자식 댓글 삭제 처리
-            vo.setCommentDesc(vo.getCommentDesc());
-            vo.setCommentDate(new Date());
-            vo.setCommentDelete("Y");
-            vo.setUserInfo(vo.getUserInfo());
-            vo.setSecretComment(vo.getSecretComment());
-            comments.delete(vo);
+            Comments comments = commentsService.show(vo.getCommentsSEQ());
+            comments.setCommentDelete("Y");
+            commentsService.delete(comments);
         }
         return ResponseEntity.status(HttpStatus.OK).build();
     }

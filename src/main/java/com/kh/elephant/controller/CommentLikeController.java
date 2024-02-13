@@ -3,6 +3,7 @@ package com.kh.elephant.controller;
 import com.kh.elephant.domain.*;
 import com.kh.elephant.service.BoardService;
 import com.kh.elephant.service.CommentLikeService;
+import com.kh.elephant.service.CommentsService;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,12 +22,14 @@ public class CommentLikeController {
 
 
     @Autowired
-    private CommentLikeService commentLike;
+    private CommentLikeService commentLikeService;
+    @Autowired
+    private CommentsService commentsService;
 
     @GetMapping("/commentLike")
     public ResponseEntity<List<CommentLike>> showAll() {
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(commentLike.showAll());
+            return ResponseEntity.status(HttpStatus.OK).body(commentLikeService.showAll());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -35,7 +38,7 @@ public class CommentLikeController {
 //    http://localhost:8080/qiri/commentLike/106
     @GetMapping("/commentLike/{id}")
     public ResponseEntity<Integer> show(@PathVariable int id) {
-        List<CommentLike> findByCommentSeq = commentLike.findByCommentSeq(id);
+        List<CommentLike> findByCommentSeq = commentLikeService.findByCommentSeq(id);
         List<CommentLikeDTO> response = new ArrayList<>();
 
         for(CommentLike item : findByCommentSeq) {
@@ -62,7 +65,7 @@ public class CommentLikeController {
     //    http://localhost:8080/qiri/commentLikeList/106
     @GetMapping("/commentLikeList/{id}")
     public ResponseEntity<List<CommentLikeDTO>> showList(@PathVariable int id) {
-        List<CommentLike> findByCommentSeq = commentLike.findByCommentSeq(id);
+        List<CommentLike> findByCommentSeq = commentLikeService.findByCommentSeq(id);
         List<CommentLikeDTO> response = new ArrayList<>();
 
         for(CommentLike item : findByCommentSeq) {
@@ -80,9 +83,15 @@ public class CommentLikeController {
     }
     // 좋아요 추가
     @PostMapping("/commentLike")
-    public ResponseEntity<CommentLike> create(@RequestBody CommentLike vo) {
+    public ResponseEntity<CommentLike> create(@RequestBody CommentsDTO dto) {
+
         try {
-            return ResponseEntity.status(HttpStatus.OK).body(commentLike.create(vo));
+            CommentLike commentLike = CommentLike.builder()
+                    .comments(commentsService.show(dto.getCommentsSEQ()))
+                    .userInfo(dto.getUserInfo())
+                    .build();
+
+            return ResponseEntity.status(HttpStatus.OK).body(commentLikeService.create(commentLike));
         } catch (Exception e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -101,7 +110,7 @@ public class CommentLikeController {
     @DeleteMapping("/commentLike/{id}")
     public ResponseEntity deleteLike(@PathVariable int id) {
         try {
-            commentLike.delete(id);
+            commentLikeService.delete(id);
             return ResponseEntity.status(HttpStatus.OK).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
