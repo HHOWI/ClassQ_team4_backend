@@ -105,8 +105,7 @@ public class CommentsController {
     @GetMapping("/comments/get/{userId}")
     public ResponseEntity<List<Comments>> getUserComments(@PathVariable String userId) {
         try {
-            List<Comments> userComments = commentsService.findCommentsByUserId(userId);
-            return ResponseEntity.status(HttpStatus.OK).body(userComments);
+            return ResponseEntity.status(HttpStatus.OK).body(commentsService.findCommentsByUserId(userId));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

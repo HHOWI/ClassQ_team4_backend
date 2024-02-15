@@ -12,7 +12,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
+
 @Slf4j
 @Service
 public class PostService {
@@ -87,9 +90,11 @@ public class PostService {
         return post;
     }
 
-    public List<Post> findPostByUserId(String userId) { return dao.findPostByUserId(userId); }
+    // seq 숫자가 높은순으로 정렬해서 반환
+    public List<Post> findPostByUserId(String userId) { return dao.findPostByUserId(userId).stream().sorted(Comparator.comparingInt(Post::getPostSEQ).reversed()).collect(Collectors.toList()); }
 
-    public List<Post> findNotMatchedPostByUserId(String userId) { return dao.findNotMatchedPostByUserId(userId); }
+    // seq 숫자가 높은순으로 정렬해서 반환
+    public List<Post> findNotMatchedPostByUserId(String userId) { return dao.findNotMatchedPostByUserId(userId).stream().sorted(Comparator.comparingInt(Post::getPostSEQ).reversed()).collect(Collectors.toList()); }
 
     public List<Post> getAllReview() {
         return dao.getAllReview();

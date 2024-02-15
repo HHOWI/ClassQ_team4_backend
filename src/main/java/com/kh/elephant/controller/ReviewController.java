@@ -37,8 +37,6 @@ public class ReviewController {
     @Autowired
     private BoardService boardService;
     @Autowired
-    private SearchService searchService;
-    @Autowired
     private MatchingUserInfoService muiService;
 
     // 리뷰글 전체 가져오기

@@ -1,13 +1,16 @@
 package com.kh.elephant.service;
 
 import com.kh.elephant.domain.Comments;
+import com.kh.elephant.domain.Post;
 import com.kh.elephant.domain.QComments;
 import com.kh.elephant.repo.CommentsDAO;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class CommentsService {
@@ -61,7 +64,7 @@ public class CommentsService {
                 .fetch();
     }
 
-    public List<Comments> findCommentsByUserId(String userId) { return dao.findCommentsByUserId(userId); }
+    public List<Comments> findCommentsByUserId(String userId) { return dao.findCommentsByUserId(userId).stream().sorted(Comparator.comparingInt(Comments::getCommentsSEQ).reversed()).collect(Collectors.toList()); }
 
     // 자식 댓글 같이 삭제
     public void deleteParentAndChildren(int parentCommentsSEQ) {
