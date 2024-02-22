@@ -43,12 +43,9 @@ public class UserCategoryInfoController {
     }
 
     // 유저 관심사 카테고리 정보 등록
-    @PostMapping("/userCategoryInfo")
+    @PostMapping("userInfo/userCategoryInfo")
     public ResponseEntity<List<UserCategoryInfo>> createCategories(@RequestBody SignUpDTO dto) {
-
-        String userId = dto.getUserInfoDTO().getId();
-        categoryInfoService.deleteByUserId(userId);
-
+        try {
         List<UserCategoryInfo> list = new ArrayList<>();
         for(int i=0; i<dto.getUserCategories().size(); i++) {
 
@@ -63,8 +60,8 @@ public class UserCategoryInfoController {
             info.setCategory(category);
             list.add(info);
         }
-        try {
-            return ResponseEntity.status(HttpStatus.CREATED).body(categoryInfoService.createAll(list));
+        categoryInfoService.createAll(list);
+            return ResponseEntity.status(HttpStatus.CREATED).body(null);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

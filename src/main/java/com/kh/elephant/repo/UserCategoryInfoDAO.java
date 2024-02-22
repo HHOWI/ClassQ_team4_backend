@@ -12,8 +12,4 @@ public interface UserCategoryInfoDAO extends JpaRepository<UserCategoryInfo, Int
     @Query(value = "SELECT * FROM USER_CATEGORY_INFO WHERE USER_ID = :userId", nativeQuery = true)
     List<UserCategoryInfo> findByUserId(@Param("userId") String userId);
 
-    @Query(value = "DELETE FROM USER_CATEGORY_INFO WHERE USER_ID = :userId", nativeQuery = true)
-    @Modifying
-    void deleteByUserId(@Param("userId") String userId);
-
 }

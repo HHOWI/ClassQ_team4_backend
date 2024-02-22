@@ -43,7 +43,6 @@ public class UserInfoService {
 
 
     public UserInfo create(UserInfo vo){
-        log.info("UserInfo : " + vo);
         return dao.save(vo);
     }
 

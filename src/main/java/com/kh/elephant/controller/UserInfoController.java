@@ -34,16 +34,10 @@ public class UserInfoController {
 
     @Autowired
     private TokenProvider tokenProvider;
-
     @Autowired
     private UserInfoService userService;
-    private UserCategoryInfoService userCategoryInfoService;
-
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    private static final String UPLOAD_DIR = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload";
-
-    private String url;
 
     // 유저 전체 조회 http://localhost:8080/qiri/userInfo
     @GetMapping("/userInfo")
@@ -76,7 +70,7 @@ public class UserInfoController {
                 loginUser.setBirthday(dto.getUserInfoDTO().getBirthday());
                 loginUser.setPlaceType(dto.getUserInfoDTO().getPlaceType());
                 loginUser.setProfileImg(dto.getUserInfoDTO().getProfileImg());
-                loginUser.setProfileImg(url);
+//                loginUser.setProfileImg(url);
 
                 UserInfo updatedUser = userService.update(loginUser);
 
@@ -127,7 +121,7 @@ public class UserInfoController {
                 .mbti(dto.getUserInfoDTO().getMbti())
                 .birthday(dto.getUserInfoDTO().getBirthday())
                 .placeType(dto.getUserInfoDTO().getPlaceType())
-                .profileImg(url)
+                .profileImg(dto.getUserInfoDTO().getProfileImg())
                 .isDeleted("N")
                 .joinDate(new Date())
                 .build();
@@ -169,12 +163,12 @@ public class UserInfoController {
     }
 
     // 프로필 사진 업로드
-    @PostMapping("/uploadProfilePicture")
-    public ResponseEntity<String> uploadProfilePicture(@RequestParam("profileImg") MultipartFile file) {
+    @PostMapping("userInfo/uploadProfilePicture")
+    public ResponseEntity<String> uploadProfilePicture(@RequestParam(required = false) MultipartFile file) {
         // MultipartFile : 업로드된 파일을 포함하는 Spring의 객체 (import 해야함)
         try {
             // 프로필 사진을 업로드할 디렉토리 경로 설정
-            String uploadDir = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\uploadprofile";
+            String uploadDir = "D:\\ClassQ_team4_frontend\\qoqiri\\public\\uploadprofile";
 
             // 프로필 사진 파일 이름을 생성(고유)
             String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename();
@@ -183,13 +177,8 @@ public class UserInfoController {
             // 프로필 사진을 디렉토리에 저장
             Path filePath = Paths.get(uploadDir, fileName); // 파일 경로
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-            url = fileName;
-
-            // 클라이언트에게 이미지 URL 전송
-            String imageUrl = "http://localhost:8080/qiri/public/uploadprofile/" + fileName;
-            return ResponseEntity.status(HttpStatus.OK).body(imageUrl);
-        } catch (IOException e) {
-            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.OK).body(fileName);
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

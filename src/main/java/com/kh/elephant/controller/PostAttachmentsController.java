@@ -89,7 +89,7 @@ public class PostAttachmentsController {
 
                 for (MultipartFile file : files) { // 첨부파일이 여러개 일수 있으니 for문 사용
                     String fileName = UUID.randomUUID().toString() + "_" + file.getOriginalFilename(); // 파일 랜덤 이름 부여랑 원래 이름
-                    String uploadPath = "C:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
+                    String uploadPath = "D:\\ClassQ_team4_frontend\\qoqiri\\public\\upload"; // 저장 경로
 
                     InputStream inputStream = file.getInputStream(); // 파일 데이터를 읽기
                     Path filePath = Paths.get(uploadPath,fileName); //Paths.get를 사용하여 파일 경로를 생성
