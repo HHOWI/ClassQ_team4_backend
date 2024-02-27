@@ -39,21 +39,11 @@ public class PostController {
     @Autowired
     private UserInfoService userInfoService; // 유저 관련 서비스
     @Autowired
-    private CommentsService commService; // 댓글 관련 서비스
-    @Autowired
     private PlaceService plService; // 지역 관련 서비스
     @Autowired
     private PlaceTypeService placeTypeService; // 지역 관련 서비스
     @Autowired
-    private PlaceTypeService pTypeService;
-    @Autowired
     private BoardService boardService; // 게시판 관련 서비스
-    @Autowired
-    private CategoryService categoryService; // 카테고리 관련 서비스
-    @Autowired
-    private PostAttachmentsService paService; // 첨부 파일 관련 서비스
-    @Autowired
-    private MatchingCategoryInfoService mciService; // 선택한 카테고리를 MatchingCategoryInfo 테이블로 저장시키기 위한 서비스
     @Autowired
     private MatchingUserInfoService muiService;
     @Autowired
@@ -69,70 +59,7 @@ public class PostController {
                                                @RequestParam(name = "onMyCategory", required = false) Integer onMyCategory)  {
 
         try {
-            Sort sort = Sort.by("postSEQ").descending();
-            Pageable pageable = PageRequest.of(page - 1, 12, sort);
-
-            QPost qPost = QPost.post;
-            QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
-            QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
-            QPlace qPlace = QPlace.place;
-            QUserCategoryInfo qUserCategoryInfo = QUserCategoryInfo.userCategoryInfo;
-
-            BooleanBuilder builder = new BooleanBuilder();
-            JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
-
-            // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
-            builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
-
-            // 로그인했다면 차단한 유저의 게시글 필터링
-            if (userId != null) {
-                // 차단한 유저 목록에 있는 아이디와 게시물 작성자의 아이디가 일치하지 않는 게시물 가져오도록 조건 추가
-                builder.andNot(qPost.userInfo.userId.in(
-                        JPAExpressions.select(qBlockUsers.blockInfo.userId)
-                                .from(qBlockUsers)
-                                .where(qBlockUsers.userInfo.userId.eq(userId))
-                ));
-            }
-
-            // 카테고리타입을 받는다면 해당하는 카테고리타입으로 필터링
-            if (categoryTypeSEQ != null) {
-                builder.and(qPost.postSEQ.in(
-                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
-                                        .from(qMatchingCategoryInfo)
-                                                .where(qMatchingCategoryInfo.category.categoryType.ctSEQ.eq(categoryTypeSEQ))
-                        ));
-            }
-
-            // 지역값을 받는다면 필터링
-            if(placeSEQ != null) {
-                builder.and(qPost.place.placeSEQ.eq(placeSEQ));
-            } else if(placeTypeSEQ != null) {
-                builder.and(qPost.place.placeSEQ.in(
-                        JPAExpressions.select(qPlace.placeSEQ)
-                                .from(qPlace)
-                                .where(qPlace.placeType.placeTypeSEQ.eq(placeTypeSEQ))
-                ));
-            }
-
-            // 내 관심사만 필터링
-            if (onMyCategory == 1) {
-                // 내 아이디로 검색하여 결과에 있는 categorySEQ 리스트 가져오기
-                List<Integer> categorySeqList = queryFactory
-                        .select(qUserCategoryInfo.category.categorySEQ)
-                        .from(qUserCategoryInfo)
-                        .where(qUserCategoryInfo.userInfo.userId.eq(userId))
-                        .fetch();
-
-                // 매칭카테고리인포와 포스트를 postSEQ로 조인하여 카테고리SEQ가 포함되어 있는 POST만 필터링
-                builder.and(qPost.postSEQ.in(
-                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
-                                .from(qMatchingCategoryInfo)
-                                .where(qMatchingCategoryInfo.category.categorySEQ.in(categorySeqList))
-                ));
-            }
-
-            Page<Post> pageResult = postService.showAll(pageable, builder);
-            return ResponseEntity.status(HttpStatus.OK).body(pageResult.getContent());
+            return ResponseEntity.status(HttpStatus.OK).body(postService.matchingPostList(page, userId, categoryTypeSEQ, placeSEQ, placeTypeSEQ, onMyCategory));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -268,9 +195,7 @@ public class PostController {
     @GetMapping("/post_not_matched/{userId}")
     public ResponseEntity<List<Post>> findNotMatchedPostByUserId(@PathVariable String userId) {
         try {
-
             return ResponseEntity.status(HttpStatus.OK).body(postService.findNotMatchedPostByUserId(userId));
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -282,7 +207,7 @@ public class PostController {
         try {
             return ResponseEntity.status(HttpStatus.OK).body(postService.MatchedPost(postSEQ));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return null;
         }
     }
 
@@ -302,52 +227,8 @@ public class PostController {
     //게시글 검색
     @GetMapping("search/{userId}_{keyword}/{page}")
     public ResponseEntity<List<Post>> headerSearch(@PathVariable("userId") String userId, @PathVariable("keyword") String keyword, @PathVariable("page") int page) {
-
         try{
-            Sort sort = Sort.by("postSEQ").descending();
-            Pageable pageable = PageRequest.of(page - 1, 12, sort);
-
-            QPost qPost = QPost.post;
-            QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
-            QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
-
-            BooleanBuilder builder = new BooleanBuilder();
-            JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
-
-            // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
-            builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
-
-            // 로그인했다면 차단한 유저의 게시글 필터링
-            if (userId != null) {
-                // 차단한 유저 목록에 있는 아이디와 게시물 작성자의 아이디가 일치하지 않는 게시물 가져오도록 조건 추가
-                builder.andNot(qPost.userInfo.userId.in(
-                        JPAExpressions.select(qBlockUsers.blockInfo.userId)
-                                .from(qBlockUsers)
-                                .where(qBlockUsers.userInfo.userId.eq(userId))
-                ));
-            }
-
-            String likePattern = "%" + keyword + "%";
-            builder.andAnyOf(
-                    qPost.postTitle.likeIgnoreCase(likePattern),
-                    qPost.postContent.likeIgnoreCase(likePattern),
-                    qPost.userInfo.userNickname.likeIgnoreCase(likePattern),
-                    qPost.place.placeName.likeIgnoreCase(likePattern),
-                    qPost.place.placeType.placeTypeName.likeIgnoreCase(likePattern),
-                    qPost.postSEQ.in(
-                            JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
-                                    .from(qMatchingCategoryInfo)
-                                    .where(qMatchingCategoryInfo.category.categoryName.likeIgnoreCase(likePattern))
-                    ),
-                    qPost.postSEQ.in(
-                            JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
-                                    .from(qMatchingCategoryInfo)
-                                    .where(qMatchingCategoryInfo.category.categoryType.ctName.likeIgnoreCase(likePattern))
-                    )
-            );
-
-            Page<Post> pageResult = postService.showAll(pageable, builder);
-            return ResponseEntity.status(HttpStatus.OK).body(pageResult.getContent());
+            return ResponseEntity.status(HttpStatus.OK).body(postService.matchingSearch(userId, keyword, page));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }

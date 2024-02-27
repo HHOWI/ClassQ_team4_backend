@@ -3,13 +3,21 @@ package com.kh.elephant.service;
 import com.kh.elephant.domain.*;
 import com.kh.elephant.repo.UserInfoDAO;
 import com.kh.elephant.security.TokenProvider;
+import com.querydsl.jpa.JPAExpressions;
+import com.querydsl.jpa.impl.JPAQueryFactory;
+import jakarta.persistence.EntityManager;
 import lombok.extern.slf4j.Slf4j;
 import com.kh.elephant.repo.PostDAO;
 import com.querydsl.core.BooleanBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.Comparator;
@@ -22,26 +30,14 @@ public class PostService {
 
     @Autowired
     private PostDAO dao;
-
-    @Autowired
-    private PostAttachmentsService postAttachmentsService;
-
-    @Autowired
-    private PlaceService placeService;
-
-    @Autowired
-    private BoardService boardService;
-
     @Autowired
     private MatchingCategoryInfoService mciService;
-
     @Autowired
     private PostAttachmentsService attachmentsService;
-
-    @Autowired UserInfoService userService;
     @Autowired
-    private TokenProvider tokenProvider;
+    private EntityManager entityManager;
 
+    @Transactional(readOnly = true)
     public Page<Post> showAll(Pageable pageable, BooleanBuilder builder) {
         
         return dao.findAll(builder, pageable); // findAll을 사용하여 게시물 전체의 정보를 조회할 수 있게함
@@ -101,4 +97,120 @@ public class PostService {
     }
 
     public int MatchedPost(int postSEQ) { return dao.MatchedPost(postSEQ); }
+
+    @Transactional(readOnly = true)
+    public List<Post> matchingPostList(int page, String userId, Integer categoryTypeSEQ, Integer placeSEQ, Integer placeTypeSEQ, Integer onMyCategory) {
+        Sort sort = Sort.by("postSEQ").descending();
+        Pageable pageable = PageRequest.of(page - 1, 12, sort);
+
+        QPost qPost = QPost.post;
+        QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
+        QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
+        QPlace qPlace = QPlace.place;
+        QUserCategoryInfo qUserCategoryInfo = QUserCategoryInfo.userCategoryInfo;
+
+        BooleanBuilder builder = new BooleanBuilder();
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+
+        // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
+        builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
+
+        // 로그인했다면 차단한 유저의 게시글 필터링
+        if (userId != null) {
+            // 차단한 유저 목록에 있는 아이디와 게시물 작성자의 아이디가 일치하지 않는 게시물 가져오도록 조건 추가
+            builder.andNot(qPost.userInfo.userId.in(
+                    JPAExpressions.select(qBlockUsers.blockInfo.userId)
+                            .from(qBlockUsers)
+                            .where(qBlockUsers.userInfo.userId.eq(userId))
+            ));
+        }
+
+        // 카테고리타입을 받는다면 해당하는 카테고리타입으로 필터링
+        if (categoryTypeSEQ != null) {
+            builder.and(qPost.postSEQ.in(
+                    JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                            .from(qMatchingCategoryInfo)
+                            .where(qMatchingCategoryInfo.category.categoryType.ctSEQ.eq(categoryTypeSEQ))
+            ));
+        }
+
+        // 지역값을 받는다면 필터링
+        if(placeSEQ != null) {
+            builder.and(qPost.place.placeSEQ.eq(placeSEQ));
+        } else if(placeTypeSEQ != null) {
+            builder.and(qPost.place.placeSEQ.in(
+                    JPAExpressions.select(qPlace.placeSEQ)
+                            .from(qPlace)
+                            .where(qPlace.placeType.placeTypeSEQ.eq(placeTypeSEQ))
+            ));
+        }
+
+        // 내 관심사만 필터링
+        if (onMyCategory == 1) {
+            // 내 아이디로 검색하여 결과에 있는 categorySEQ 리스트 가져오기
+            List<Integer> categorySeqList = queryFactory
+                    .select(qUserCategoryInfo.category.categorySEQ)
+                    .from(qUserCategoryInfo)
+                    .where(qUserCategoryInfo.userInfo.userId.eq(userId))
+                    .fetch();
+
+            // 매칭카테고리인포와 포스트를 postSEQ로 조인하여 카테고리SEQ가 포함되어 있는 POST만 필터링
+            builder.and(qPost.postSEQ.in(
+                    JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                            .from(qMatchingCategoryInfo)
+                            .where(qMatchingCategoryInfo.category.categorySEQ.in(categorySeqList))
+            ));
+        }
+
+        Page<Post> pageResult = this.showAll(pageable, builder);
+        return pageResult.getContent();
+    }
+
+    @Transactional(readOnly = true)
+    public List<Post> matchingSearch(String userId, String keyword, int page) {
+        Sort sort = Sort.by("postSEQ").descending();
+        Pageable pageable = PageRequest.of(page - 1, 12, sort);
+
+        QPost qPost = QPost.post;
+        QBlockUsers qBlockUsers = QBlockUsers.blockUsers;
+        QMatchingCategoryInfo qMatchingCategoryInfo = QMatchingCategoryInfo.matchingCategoryInfo;
+
+        BooleanBuilder builder = new BooleanBuilder();
+        JPAQueryFactory queryFactory = new JPAQueryFactory(entityManager);
+
+        // 삭제하지 않았고, 매칭글인 게시물만 가져오도록 조건
+        builder.and(qPost.postDelete.eq("N").and(qPost.board.boardSEQ.eq(1)));
+
+        // 로그인했다면 차단한 유저의 게시글 필터링
+        if (userId != null) {
+            // 차단한 유저 목록에 있는 아이디와 게시물 작성자의 아이디가 일치하지 않는 게시물 가져오도록 조건 추가
+            builder.andNot(qPost.userInfo.userId.in(
+                    JPAExpressions.select(qBlockUsers.blockInfo.userId)
+                            .from(qBlockUsers)
+                            .where(qBlockUsers.userInfo.userId.eq(userId))
+            ));
+        }
+
+        String likePattern = "%" + keyword + "%";
+        builder.andAnyOf(
+                qPost.postTitle.likeIgnoreCase(likePattern),
+                qPost.postContent.likeIgnoreCase(likePattern),
+                qPost.userInfo.userNickname.likeIgnoreCase(likePattern),
+                qPost.place.placeName.likeIgnoreCase(likePattern),
+                qPost.place.placeType.placeTypeName.likeIgnoreCase(likePattern),
+                qPost.postSEQ.in(
+                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                                .from(qMatchingCategoryInfo)
+                                .where(qMatchingCategoryInfo.category.categoryName.likeIgnoreCase(likePattern))
+                ),
+                qPost.postSEQ.in(
+                        JPAExpressions.select(qMatchingCategoryInfo.post.postSEQ)
+                                .from(qMatchingCategoryInfo)
+                                .where(qMatchingCategoryInfo.category.categoryType.ctName.likeIgnoreCase(likePattern))
+                )
+        );
+
+        Page<Post> pageResult = this.showAll(pageable, builder);
+        return pageResult.getContent();
+    }
 }
