@@ -86,9 +86,6 @@ public class ChatService {
         // 채팅방 생성
         ChatRoom chatRoom = this.createChatRoom(dto.getPostSEQ());
 
-        // 채팅방 접속
-        this.join(chatRoom.getChatRoomSEQ(), dto.getId());
-
         // 승락한 사람들 구하기
         List<MatchingUserInfo> matchingUserInfoList = muiService.findAccept(dto.getPostSEQ());
 
