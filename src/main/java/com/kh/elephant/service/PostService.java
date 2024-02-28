@@ -99,7 +99,12 @@ public class PostService {
     public int MatchedPost(int postSEQ) { return dao.MatchedPost(postSEQ); }
 
     @Transactional(readOnly = true)
-    public List<Post> matchingPostList(int page, String userId, Integer categoryTypeSEQ, Integer placeSEQ, Integer placeTypeSEQ, Integer onMyCategory) {
+    public List<Post> matchingPostList(
+            int page, String userId, Integer categoryTypeSEQ, Integer placeSEQ,
+            Integer placeTypeSEQ, Integer onMyCategory) {
+
+        log.info("유저확인" + userId);
+
         Sort sort = Sort.by("postSEQ").descending();
         Pageable pageable = PageRequest.of(page - 1, 12, sort);
 

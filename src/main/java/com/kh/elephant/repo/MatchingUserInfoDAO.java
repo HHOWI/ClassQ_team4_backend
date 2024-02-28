@@ -4,6 +4,7 @@ import com.kh.elephant.domain.MatchingUserInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.querydsl.QuerydslPredicateExecutor;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,14 +12,10 @@ import java.util.List;
 import java.util.Optional;
 
 
-public interface MatchingUserInfoDAO extends JpaRepository<MatchingUserInfo, Integer> {
+public interface MatchingUserInfoDAO extends JpaRepository<MatchingUserInfo, Integer>, QuerydslPredicateExecutor<MatchingUserInfo> {
 
 
     Optional<MatchingUserInfo> findByUserInfo_UserIdAndPost_PostSEQ(String userId, int postSEQ);
-
-    @Query(value = "SELECT * FROM MATCHING_USER_INFO WHERE USER_ID !=:id AND POST_SEQ =:postSEQ AND MATCHING_ACCEPT !='H'", nativeQuery = true)
-    List<MatchingUserInfo> findMatchingByPostSEQ(@Param("id") String id, @Param("postSEQ") int postSEQ);
-
 
     @Transactional
     @Modifying

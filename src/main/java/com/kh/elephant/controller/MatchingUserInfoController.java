@@ -38,16 +38,6 @@ public class MatchingUserInfoController {
 
 
 
-
-    @GetMapping("/matchingUserInfo")
-    public ResponseEntity<List<MatchingUserInfo>> showAll() {
-        try {
-            return ResponseEntity.status(HttpStatus.OK).body(muiService.showAll());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-    }
-
     @GetMapping("/matchingUserInfo/{id}")
     public ResponseEntity<MatchingUserInfo> show(@PathVariable int id) {
         try {
@@ -94,7 +84,7 @@ public class MatchingUserInfoController {
         try {
             return ResponseEntity.ok(muiService.findMatchingByPostSEQ(dto.getId(), dto.getPostSEQ()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+            return null;
         }
     }
 
